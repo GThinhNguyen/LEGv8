@@ -1,53 +1,55 @@
+import os
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
+
+# Biến toàn cục lưu đường dẫn file hiện tại
+current_file_path = None
 
 def handle_open_file(ui):
     """
-    Xử lý khi nhấn nút 'Open file':
-    - Hiển thị hộp thoại chọn file
-    - Đọc nội dung file
-    - Hiển thị nội dung trong QTextEdit
+    Hiển thị hộp thoại mở file, đọc nội dung và hiển thị vào codeEditor.
+    Cập nhật thanh trạng thái với tên file.
     """
-    # Hiện hộp thoại chọn file
+    global current_file_path
     options = QFileDialog.Options()
-    file_name, _ = QFileDialog.getOpenFileName(
-        None,
-        "Open Assembly File",
-        "",
-        "Text Files (*.txt);;All Files (*)",
+    options |= QFileDialog.ReadOnly
+    file_path, _ = QFileDialog.getOpenFileName(
+        ui.centralwidget,
+        "Chọn file LEGv8 (.txt, .s, .asm)",
+        os.getcwd(),
+        "LEGv8 Files (*.txt *.s *.asm);;All Files (*)",
         options=options
     )
-    
-    if file_name:
+    if file_path:
         try:
-            with open(file_name, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-                ui.textEdit.setPlainText(content)  # Hiển thị nội dung lên giao diện
+            ui.codeEditor.setPlainText(content)
+            current_file_path = file_path
+            # Cập nhật title thông qua widget cha
+            main_window = ui.centralwidget.window()
+            main_window.setWindowTitle(f"LEGv8 Simulator - {os.path.basename(file_path)}")
         except Exception as e:
-            # Hiển thị lỗi nếu có
-            QMessageBox.critical(None, "Error", f"Could not read file:\n{str(e)}")
-
+            QMessageBox.critical(ui.centralwidget, "Lỗi mở file", str(e))
 
 def handle_close_file(ui):
     """
-    Xử lý khi nhấn nút 'Close file':
-    - Xóa nội dung đang hiển thị trong QTextEdit
-    - Reset các cờ và thanh ghi nếu muốn (mở rộng sau)
+    Đóng file hiện tại: xóa nội dung codeEditor và thiết lập lại tiêu đề.
     """
-    confirm = QMessageBox.question(
-        None,
-        "Confirm Close",
-        "Are you sure you want to close the current file?",
-        QMessageBox.Yes | QMessageBox.No
+    global current_file_path
+    if current_file_path is None:
+        QMessageBox.information(ui.centralwidget, "Thông báo", "Chưa có file nào được mở.")
+        return
+    # Hỏi người dùng có chắc muốn đóng không
+    reply = QMessageBox.question(
+        ui.centralwidget,
+        "Xác nhận",
+        f"Bạn có muốn đóng file {os.path.basename(current_file_path)} không?",
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No
     )
-    
-    if confirm == QMessageBox.Yes:
-        ui.textEdit.clear()
-
-        # Nếu bạn muốn reset các thanh ghi/cờ thì thêm như dưới:
-        for row in range(32):
-            ui.registerShow.setItem(row, 0, None)
-        ui.n_flag.setText("N")
-        ui.z_flag.setText("Z")
-        ui.c_flag.setText("C")
-        ui.v_flag.setText("V")
-
+    if reply == QMessageBox.Yes:
+        ui.codeEditor.clear()
+        current_file_path = None
+        # Đặt lại tiêu đề qua widget cha
+        main_window = ui.centralwidget.window()
+        main_window.setWindowTitle("LEGv8 Simulator")
