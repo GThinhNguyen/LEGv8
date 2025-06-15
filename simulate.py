@@ -134,7 +134,7 @@ line_next = {
     # Control outputs
     'Control': ['L14', 'L15', 'L16', 'L17', 'L18', 'L19', 'L20', 'L21', 'L22', 'L23', 'L13'],
     'PC': ['L58'],
-    'IM': ['L39'],
+    'IM': ['L29'],
     'Reg': ['L41', 'L42'],
     'ALU': ['L25', 'L45', 'L48'],
     'ALUControl': ['L24'],
@@ -233,6 +233,8 @@ def show_lines(ax, lines_dict):
         ax.plot(*line.T, lw=2, color='red')
 
         
+
+        
 import bits  # Thêm dòng này ở đầu file
 
 
@@ -296,12 +298,11 @@ def animate_square_from_block(ax, start_block, lines, line_next, interval=20, sp
 
             if distance_travelled < total_len:
                 sq['distance_travelled'] = min(total_len, distance_travelled + speed)
-                active_patches.append(sq['patch'])
-                active_patches.append(sq['text'])
-            else:
-                sq['patch'].set_visible(False)
+            active_patches.append(sq['patch'])
+            active_patches.append(sq['text'])
+
         return active_patches
-    ani = animation.FuncAnimation(ax.figure, update, interval=interval, blit=True, cache_frame_data=False)
+    ani = animation.FuncAnimation(ax.figure, update, interval=interval, blit=False, cache_frame_data=False)
     return ani
 
 # --- Dữ liệu polygons và lines giữ nguyên như bạn đã có ở trên ---
