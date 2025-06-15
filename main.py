@@ -86,7 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
             'SL2', 'P8', 'A1', 'A2', 'M4'
         ]
 
-            # Khởi tạo biến đếm bước nếu chưa có
+        # Khởi tạo biến đếm bước nếu chưa có
         if not hasattr(self, 'current_step'):
             self.current_step = 0
 
@@ -98,7 +98,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Animate block/line hiện tại
         self.ani = simulate.animate_square_from_block(
-            self.ax, block, simulate.lines, simulate.line_next, square_size=18, interval=20, speed=2
+            self.ax, block, simulate.lines, simulate.line_next, interval=20, speed=5
         )
         self.canvas.draw_idle()
         self.current_step += 1
@@ -130,7 +130,6 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = MainWindow()
-
 
     w.showMaximized()
 

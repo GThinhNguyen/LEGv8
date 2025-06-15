@@ -233,18 +233,38 @@ def show_lines(ax, lines_dict):
         ax.plot(*line.T, lw=2, color='red')
 
         
+import bits  # Thêm dòng này ở đầu file
+
+
 # Command: Animate a square moving from a given block along the data path
-def animate_square_from_block(ax, start_block, lines, line_next, square_size=18, interval=20, speed=2):
+def animate_square_from_block(ax, start_block, lines, line_next, interval=20, speed=2):
     import matplotlib.patches as patches
     import matplotlib.animation as animation
 
     squares = []
 
     # Spawn một square di chuyển trên từng line xuất phát từ block
+    # Spawn một square di chuyển trên từng line xuất phát từ block
     def spawn_square(path, to_key):
-        rect = patches.Rectangle((0,0), square_size, square_size, color='blue', zorder=10)
+        # Lấy bit hiển thị cho block này từ hàm trong bits.py
+        if hasattr(bits, "get_bits_for_path"):
+            bit_str = bits.get_bits_for_path(start_block, to_key)
+        else:
+            bit_str = to_key
+        # Tạo text tạm thời để đo kích thước
+        temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
+        renderer = ax.figure.canvas.get_renderer()
+        bbox = temp_text.get_window_extent(renderer=renderer)
+        inv = ax.transData.inverted()
+        bbox_data = bbox.transformed(inv)
+        width = bbox_data.width
+        height = bbox_data.height
+        temp_text.remove()
+        # Tạo rectangle vừa khít text
+        rect = patches.Rectangle((0, 0), width, height, color='blue', zorder=10)
         ax.add_patch(rect)
-        squares.append({'patch': rect, 'path': path, 'distance_travelled': 0.0, 'to': to_key})
+        text = ax.text(0 + width/2, 0 + height/2, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
+        squares.append({'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key})
 
     # Chỉ spawn square cho các line nối từ block xuất phát
     for next_name in line_next.get(start_block, []):
@@ -269,10 +289,15 @@ def animate_square_from_block(ax, start_block, lines, line_next, square_size=18,
                 remain -= seg_len
             else:
                 pos = path[-1]
-            sq['patch'].set_xy((pos[0] - square_size/2, pos[1] - square_size/2))
+
+            # Center the rectangle at the same position as the text
+            sq['patch'].set_xy((pos[0] - sq['patch'].get_width()/2, pos[1] - sq['patch'].get_height()/2))
+            sq['text'].set_position((pos[0], pos[1]))
+
             if distance_travelled < total_len:
                 sq['distance_travelled'] = min(total_len, distance_travelled + speed)
                 active_patches.append(sq['patch'])
+                active_patches.append(sq['text'])
             else:
                 sq['patch'].set_visible(False)
         return active_patches

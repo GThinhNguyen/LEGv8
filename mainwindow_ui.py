@@ -29,7 +29,7 @@ class Ui_MainWindow(object):
         self.open_bottom = QtWidgets.QPushButton(self.setting_frame)
         self.open_bottom.setObjectName("open_bottom")
         self.setting_layout.addWidget(self.open_bottom)
-        
+
         self.close_bottom = QtWidgets.QPushButton(self.setting_frame)
         self.close_bottom.setObjectName("close_bottom")
         self.setting_layout.addWidget(self.close_bottom)
