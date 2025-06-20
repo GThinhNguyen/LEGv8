@@ -92,7 +92,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         block = order[self.current_step]
 
-
         # Animate block/line hiện tại
         self.ani = simulate.animate_square_from_block(
             self.ax, block, simulate.lines, simulate.line_next, interval=20, speed=5

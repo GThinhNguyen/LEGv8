@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
 from matplotlib.path import Path
+import bits  # Thêm dòng này ở đầu file
 
 
 polygons = {
@@ -27,10 +28,7 @@ polygons = {
     'SL2': np.array([[737, 168], [765, 168], [765, 168], [781, 201], [781, 201], [760, 235], [760, 235], [733, 237], [733, 237], [715, 203], [715, 203]])
 }
 
-points = {
-    'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'
-}
-
+points = {'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'}
 
 lines = {
     #From Control
@@ -125,8 +123,6 @@ lines = {
     'L9b': np.array([[905, 162], [1085, 162]])
 }
 
-
-
 # Định nghĩa các đường nối tiếp dựa trên comment trong dict lines
 # Sửa lại: dùng dict Python hợp lệ, key là tên line hoặc block, value là list tên line/block tiếp theo
 
@@ -151,59 +147,6 @@ line_next = {
     'M3': ['L52'],
     'M4': ['L8'],
 
-    # Lines to blocks
-    'L13': ['M1'],
-    'L14': ['XOR'],
-    'L15': ['AND1'],
-    'L16': ['AND2'],
-    'L17': ['Mem'],
-    'L18': ['M3'],
-    'L19': ['Mem'],
-    'L20': ['Flags'],
-    'L21': ['M2'],
-    'L22': ['ALUControl'],
-    'L23': ['Reg'],
-    'L24': ['ALU'],
-    'L25': ['AND2'],
-    'L26': ['XOR'],
-    'L27': ['M4'],
-    'L28': ['XOR'],
-    'L29': ['P2'],
-    'L32': ['Control'],
-    'L33': ['Reg'],
-    'L34': ['M1'],
-    'L36': ['P3'],
-    'L37': ['M1'],
-    'L38': ['Reg'],
-    'L39': ['P4'],
-    'L40': ['SE'],
-    'L41': ['ALU'],
-    'L42': ['P5'],
-    'L43': ['M2'],
-    'L44': ['Mem'],
-    'L45': ['P7'],
-    'L46': ['Mem'],
-    'L47': ['M3'],
-    'L48': ['Flags'],
-    'L49': ['M3'],
-    'L50': ['Reg'],
-    'L51': ['ALU'],
-    'L52': ['Reg'],
-    'L53': ['ALUControl'],
-    'L54': ['P6'],
-    'L55': ['M2'],
-    'L56': ['SL2'],
-    'L57': ['ADD2'],
-    'L58': ['P1'],
-    'L59': ['IM'],
-    'L60': ['ADD1'],
-    'L1': ['P8'],
-    'L2': ['A1'],
-    'L4': ['A1'],
-    'L5': ['ADD2'],
-    'L8': ['M4'],
-    'L9a': ['PC'],
-    'L9b': ['M4'],
 
     # Points to lines
     'P1': ['L59', 'L1'],
@@ -215,6 +158,94 @@ line_next = {
     'P7': ['L46', 'L47'],
     'P8': ['L2', 'L5'],
 }
+
+# key là tên block, value là list các dict chứa thông tin đối tượng đích, cổng và giá trị hiện tại
+connection_map = {
+    'L13': [{'to': 'M1', 'port': 'Inp1', 'value': 0}],
+    'L14': [{'to': 'XOR', 'port': 'Inp0', 'value': 0}],
+    'L15': [{'to': 'AND1', 'port': 'Inp0', 'value': 0}],
+    'L16': [{'to': 'AND2', 'port': 'Inp0', 'value': 0}],
+    'L17': [{'to': 'Mem', 'port': 'ControlRead', 'value': 0}],
+    'L18': [{'to': 'M3', 'port': 'Control', 'value': 0}],
+    'L19': [{'to': 'Mem', 'port': 'ControlWrite', 'value': 0}],
+    'L20': [{'to': 'Flags', 'port': 'Control', 'value': 0}],
+    'L21': [{'to': 'M2', 'port': 'Control', 'value': 0}],
+    'L22': [{'to': 'ALUControl', 'port': 'Control', 'value': 0}],
+    'L23': [{'to': 'Reg', 'port': 'Control', 'value': 0}],
+    'L24': [{'to': 'ALU', 'port': 'Control', 'value': 0}],
+    'L25': [{'to': 'AND2', 'port': 'Inp1', 'value': 0}],
+    'L26': [{'to': 'XOR', 'port': 'Inp1', 'value': 0}],
+    'L27': [{'to': 'M4', 'port': 'Control', 'value': 0}],
+    'L28': [{'to': 'XOR', 'port': 'Inp2', 'value': 0}],
+    'L29': [{'to': 'P2', 'port': 'Inp0', 'value': 0}],
+    'L32': [{'to': 'Control', 'port': 'Inp0', 'value': 0}],
+    'L33': [{'to': 'Reg', 'port': 'ReadRegister1', 'value': 0}],
+    'L34': [{'to': 'M1', 'port': 'Inp0', 'value': 0}],
+    'L36': [{'to': 'P3', 'port': 'Inp0', 'value': 0}],
+    'L37': [{'to': 'M1', 'port': 'Inp1', 'value': 0}],
+    'L38': [{'to': 'Reg', 'port': 'WriteRegister', 'value': 0}],
+    'L39': [{'to': 'P4', 'port': 'Inp0', 'value': 0}],
+    'L40': [{'to': 'SE', 'port': 'Inp0', 'value': 0}],
+    'L41': [{'to': 'ALU', 'port': 'Inp0', 'value': 0}],
+    'L42': [{'to': 'P5', 'port': 'Inp0', 'value': 0}],
+    'L43': [{'to': 'M2', 'port': 'Inp0', 'value': 0}],
+    'L44': [{'to': 'Mem', 'port': 'WriteData', 'value': 0}],
+    'L45': [{'to': 'P7', 'port': 'Inp0', 'value': 0}],
+    'L46': [{'to': 'Mem', 'port': 'Address', 'value': 0}],
+    'L47': [{'to': 'M3', 'port': 'Inp0', 'value': 0}],
+    'L48': [{'to': 'Flags', 'port': 'Inp0', 'value': 0}],
+    'L49': [{'to': 'M3', 'port': 'Inp1', 'value': 0}],
+    'L50': [{'to': 'Reg', 'port': 'ReadRegister2', 'value': 0}],
+    'L51': [{'to': 'ALU', 'port': 'Inp1', 'value': 0}],
+    'L52': [{'to': 'Reg', 'port': 'WriteData', 'value': 0}],
+    'L53': [{'to': 'ALUControl', 'port': 'Inp0', 'value': 0}],
+    'L54': [{'to': 'P6', 'port': 'Inp0', 'value': 0}],
+    'L55': [{'to': 'M2', 'port': 'Inp1', 'value': 0}],
+    'L56': [{'to': 'SL2', 'port': 'Inp0', 'value': 0}],
+    'L57': [{'to': 'ADD2', 'port': 'Inp1', 'value': 0}],
+    'L58': [{'to': 'P1', 'port': 'Inp0', 'value': 0}],
+    'L59': [{'to': 'IM', 'port': 'ReadAddress', 'value': 0}],
+    'L60': [{'to': 'ADD1', 'port': 'Inp1', 'value': 0}],
+    'L1':  [{'to': 'P8', 'port': 'Inp0', 'value': 0}],
+    'L2':  [{'to': 'ADD1', 'port': 'Inp0', 'value': 0}],
+    'L4':  [{'to': 'ADD1', 'port': 'Inp1', 'value': 0}],
+    'L5':  [{'to': 'ADD2', 'port': 'Inp0', 'value': 0}],
+    'L8':  [{'to': 'M4', 'port': 'Inp0', 'value': 0}],
+    'L9a': [{'to': 'PC', 'port': 'Inp0', 'value': 0}],
+    'L9b': [{'to': 'M4', 'port': 'Inp1', 'value': 0}],
+}
+
+
+data = {
+    'PC': {'Inp0': 0},
+    'IM': {'ReadAddress': 0},
+    'Reg': {'Control': 0, 'ReadRegister1': 0, 'ReadRegister2': 0, 'WriteRegister': 0, 'WriteData': 0},
+    'Mem': {'ControlRead': 0, 'ControlWrite': 0, 'Address': 0, 'WriteData': 0},
+    'ALU': {'Control': 0, 'Inp0': 0, 'Inp1': 0},
+    'ADD2': {'Inp0': 0, 'Inp1': 0},
+    'ADD1': {'Inp0': 0, 'Inp1': 0},
+    'M1': {'Control': 0, 'Inp0': 0, 'Inp1': 0},
+    'M2': {'Control': 0, 'Inp0': 0, 'Inp1': 0},
+    'M3': {'Control': 0, 'Inp0': 0, 'Inp1': 0},
+    'M4': {'Control': 0, 'Inp0': 0, 'Inp1': 0},
+    'Flags': {'Control': 0, 'Inp0': 0},
+    'SE': {'Inp': 0},
+    'ALUControl': {'Control': 0},
+    'Control': {'Inp': 0},
+    'XOR': {'Inp0': 0, 'Inp1': 0, 'Inp2': 0},
+    'AND1': {'Inp0': 0, 'Inp1': 0},
+    'AND2': {'Inp0': 0, 'Inp1': 0},
+    'SL2': {'Inp0': 0},
+    'P1': {'Inp0': 0},
+    'P2': {'Inp0': 0},
+    'P3': {'Inp0': 0},
+    'P4': {'Inp0': 0},
+    'P5': {'Inp0': 0},
+    'P6': {'Inp0': 0},
+    'P7': {'Inp0': 0},
+    'P8': {'Inp0': 0}
+}
+
 
 def show_polygons(ax, polygons_dict):
     for poly in polygons_dict.values():
@@ -235,7 +266,6 @@ def show_lines(ax, lines_dict):
         
 
         
-import bits  # Thêm dòng này ở đầu file
 
 
 # Command: Animate a square moving from a given block along the data path
@@ -248,11 +278,12 @@ def animate_square_from_block(ax, start_block, lines, line_next, interval=20, sp
     # Spawn một square di chuyển trên từng line xuất phát từ block
     # Spawn một square di chuyển trên từng line xuất phát từ block
     def spawn_square(path, to_key):
+
+        
+        
         # Lấy bit hiển thị cho block này từ hàm trong bits.py
-        if hasattr(bits, "get_bits_for_path"):
-            bit_str = bits.get_bits_for_path(start_block, to_key)
-        else:
-            bit_str = to_key
+        bit_str = bits.get_bits_for_path(start_block, to_key)
+
         # Tạo text tạm thời để đo kích thước
         temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
         renderer = ax.figure.canvas.get_renderer()
