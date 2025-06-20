@@ -107,7 +107,7 @@ lines = {
     #from sift left 2
     'L57': np.array([[777, 201], [811, 201]]),
 
-    'L60': np.array([[846, 47], [873, 47]]),
+    'L60': np.array([[848, 450], [870, 450]]),
 
     #from PC
     'L58': np.array([[68, 482], [83, 482]]), #1, 59
@@ -264,40 +264,50 @@ def show_lines(ax, lines_dict):
         ax.plot(*line.T, lw=2, color='red')
 
 
-# Command: Animate a square moving from a given block along the data path
 def animate_square_from_block(ax, start_block, lines, line_next, interval=20, speed=2):
     import matplotlib.patches as patches
     import matplotlib.animation as animation
 
+    # Sử dụng dict để quản lý các ô vuông theo key là (start_block, to_key)
+    if not hasattr(ax, 'existing_squares'):
+        ax.existing_squares = {}
+
     squares = []
 
-    # Spawn một square di chuyển trên từng line xuất phát từ block
     def spawn_square(path, to_key):
-        
-        # Lấy bit hiển thị cho block này từ hàm trong bits.py
+        key = (start_block, to_key)
         bit_str = bits.get_bits_for_path(start_block, to_key)
 
-        # Tạo text tạm thời để đo kích thước
-        temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
-        renderer = ax.figure.canvas.get_renderer()
-        bbox = temp_text.get_window_extent(renderer=renderer)
-        inv = ax.transData.inverted()
-        bbox_data = bbox.transformed(inv)
-        width = bbox_data.width
-        height = bbox_data.height
-        temp_text.remove()
-        
-        # Tạo rectangle vừa khít text
-        rect = patches.Rectangle((0, 0), width, height, color='blue', zorder=10)
-        ax.add_patch(rect)
-        text = ax.text(0 + width/2, 0 + height/2, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
-        squares.append({'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key})
+        if key in ax.existing_squares:
+            # Đã có ô vuông, reset lại vị trí và cập nhật text nếu cần
+            sq = ax.existing_squares[key]
+            sq['distance_travelled'] = 0.0
+            sq['text'].set_text(bit_str)
+            squares.append(sq)
+        else:
+            # Tạo text tạm để đo kích thước
+            temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
+            renderer = ax.figure.canvas.get_renderer()
+            bbox = temp_text.get_window_extent(renderer=renderer)
+            inv = ax.transData.inverted()
+            bbox_data = bbox.transformed(inv)
+            width = bbox_data.width
+            height = bbox_data.height
+            temp_text.remove()
 
-    # Chỉ spawn square cho các line nối từ block xuất phát
+            rect = patches.Rectangle((0, 0), width, height, color='blue', zorder=10)
+            ax.add_patch(rect)
+            text = ax.text(0 + width/2, 0 + height/2, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
+            sq = {'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key}
+            ax.existing_squares[key] = sq
+            squares.append(sq)
+
+    spawned = set()
     for next_name in line_next.get(start_block, []):
-        if next_name in lines:
+        if next_name in lines and next_name not in spawned:
             next_path = lines[next_name]
             spawn_square(next_path, next_name)
+            spawned.add(next_name)
 
     def update(frame):
         active_patches = []
@@ -317,7 +327,6 @@ def animate_square_from_block(ax, start_block, lines, line_next, interval=20, sp
             else:
                 pos = path[-1]
 
-            # Center the rectangle at the same position as the text
             sq['patch'].set_xy((pos[0] - sq['patch'].get_width()/2, pos[1] - sq['patch'].get_height()/2))
             sq['text'].set_position((pos[0], pos[1]))
 
@@ -326,7 +335,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, interval=20, sp
             active_patches.append(sq['patch'])
             active_patches.append(sq['text'])
         return active_patches
-    
+
     ani = animation.FuncAnimation(ax.figure, update, interval=interval, blit=False, cache_frame_data=False)
     return ani
 

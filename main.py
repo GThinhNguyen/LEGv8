@@ -77,7 +77,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.canvas.draw_idle()
 
-
     def simulate_add_step(self):
         # Danh sách các block theo thứ tự animation
         order = [
@@ -89,6 +88,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Khởi tạo biến đếm bước nếu chưa có
         if not hasattr(self, 'current_step'):
             self.current_step = 0
+        
+        # Nếu đã hết order thì quay lại đầu
+        if self.current_step >= len(order):
+            self.current_step = 0
 
         block = order[self.current_step]
 
@@ -98,7 +101,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.canvas.draw_idle()
         self.current_step += 1
-
 
     def get_rn_rm_from_code(self):
         """
@@ -120,8 +122,6 @@ class MainWindow(QtWidgets.QMainWindow):
             return rn_idx, rm_idx
         except Exception:
             return None, None
-
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

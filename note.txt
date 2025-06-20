@@ -1,0 +1,2 @@
+- chọn thứ tự gọi hàm
+- 
