@@ -12,8 +12,8 @@ polygons = {
     'Reg': np.array([[457, 452], [606, 452], [606, 642], [461, 642]]),
     'Mem': np.array([[972, 534], [1093, 534], [1093, 710], [968, 710]]),
     'ALU': np.array([[838, 511], [838, 584], [740, 623], [740, 568], [759, 549], [737, 527], [737, 473]]),
-    'A2': np.array([[907, 132], [907, 192], [813, 226], [813, 179], [829, 163], [809, 143], [809, 105]]),
-    'A1': np.array([[265, 63], [265, 115], [207, 140], [207, 104], [221, 90], [204, 73], [204, 34]]),
+    'ADD2': np.array([[907, 132], [907, 192], [813, 226], [813, 179], [829, 163], [809, 143], [809, 105]]),
+    'ADD1': np.array([[265, 63], [265, 115], [207, 140], [207, 104], [221, 90], [204, 73], [204, 34]]),
     'M1': np.array([[434, 492], [434, 559], [420, 573], [406, 559], [406, 497], [420, 483]]),
     'M2': np.array([[708, 559], [708, 623], [691, 640], [675, 626], [675, 564], [691, 548]]),
     'M3': np.array([[1173, 595], [1173, 656], [1152, 677], [1136, 661], [1136, 596], [1152, 580]]),
@@ -263,10 +263,6 @@ def show_lines(ax, lines_dict):
             continue
         ax.plot(*line.T, lw=2, color='red')
 
-        
-
-        
-
 
 # Command: Animate a square moving from a given block along the data path
 def animate_square_from_block(ax, start_block, lines, line_next, interval=20, speed=2):
@@ -276,10 +272,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, interval=20, sp
     squares = []
 
     # Spawn một square di chuyển trên từng line xuất phát từ block
-    # Spawn một square di chuyển trên từng line xuất phát từ block
     def spawn_square(path, to_key):
-
-        
         
         # Lấy bit hiển thị cho block này từ hàm trong bits.py
         bit_str = bits.get_bits_for_path(start_block, to_key)
@@ -293,6 +286,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, interval=20, sp
         width = bbox_data.width
         height = bbox_data.height
         temp_text.remove()
+        
         # Tạo rectangle vừa khít text
         rect = patches.Rectangle((0, 0), width, height, color='blue', zorder=10)
         ax.add_patch(rect)
@@ -331,8 +325,8 @@ def animate_square_from_block(ax, start_block, lines, line_next, interval=20, sp
                 sq['distance_travelled'] = min(total_len, distance_travelled + speed)
             active_patches.append(sq['patch'])
             active_patches.append(sq['text'])
-
         return active_patches
+    
     ani = animation.FuncAnimation(ax.figure, update, interval=interval, blit=False, cache_frame_data=False)
     return ani
 
