@@ -53,3 +53,32 @@ def handle_close_file(ui):
         # Đặt lại tiêu đề qua widget cha
         main_window = ui.centralwidget.window()
         main_window.setWindowTitle("LEGv8 Simulator")
+
+def handle_save_file(ui):
+    """
+    Hiển thị hộp thoại lưu file, lưu nội dung codeEditor vào file.
+    Nếu chưa có file nào được mở, sử dụng Save As.
+    """
+    global current_file_path
+    if current_file_path is None:
+        options = QFileDialog.Options()
+        options |= QFileDialog.ShowDirsOnly
+        file_path, _ = QFileDialog.getSaveFileName(
+            ui.centralwidget,
+            "Lưu file LEGv8",
+            os.getcwd(),
+            "LEGv8 Files (*.txt *.s *.asm);;All Files (*)",
+            options=options
+        )
+        if not file_path:
+            return
+        current_file_path = file_path
+
+    try:
+        with open(current_file_path, 'w', encoding='utf-8') as f:
+            f.write(ui.codeEditor.toPlainText())
+        QMessageBox.information(ui.centralwidget, "Thông báo", "Đã lưu thành công.")
+        main_window = ui.centralwidget.window()
+        main_window.setWindowTitle(f"LEGv8 Simulator - {os.path.basename(current_file_path)}")
+    except Exception as e:
+        QMessageBox.critical(ui.centralwidget, "Lỗi lưu file", str(e))

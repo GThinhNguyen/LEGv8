@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QPlainTextEdit, QWidget, QTextEdit, QApplication, QMainWindow, QVBoxLayout, QFrame
+from PyQt5.QtWidgets import QPlainTextEdit, QWidget, QTextEdit, QApplication, QMainWindow, QVBoxLayout, QFrame, QTableWidget, QTableWidgetItem
 from PyQt5.QtGui import QColor, QPainter, QTextFormat
 from PyQt5.QtCore import QRect, Qt, QSize, pyqtSlot
 
@@ -135,6 +135,10 @@ class Ui_MainWindow(object):
         self.stop_bottom.setObjectName("stop_bottom")
         self.setting_layout.addWidget(self.stop_bottom)
         
+        self.help_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.help_bottom.setObjectName("help_bottom")
+        self.setting_layout.addWidget(self.help_bottom)
+
         self.top_layout.addWidget(self.setting_frame)
         
         # Code frame
@@ -170,6 +174,37 @@ class Ui_MainWindow(object):
         
         self.reg_layout.addWidget(self.registerShow, 0, 0, 5, 1)
         
+        # Bảng hiển thị RAM
+        self.ramTable = QTableWidget(self.reg_frame)
+        self.ramTable.setObjectName("ramTable")
+        self.ramTable.setColumnCount(4)
+        self.ramTable.setRowCount(256)
+        self.ramTable.setHorizontalHeaderLabels(["ByteAddress", "ByteValue", "WordAddress", "WordValue"])
+        for i in range(256):
+            # ByteAddress
+            item_addr = QTableWidgetItem(str(i))
+            item_addr.setFlags(item_addr.flags() & ~Qt.ItemIsEditable)
+            self.ramTable.setItem(i, 0, item_addr)
+            # ByteValue (editable)
+            self.ramTable.setItem(i, 1, QTableWidgetItem(""))
+            # WordAddress every 4 bytes
+            if i % 4 == 0:
+                w_item = QTableWidgetItem(str(i // 4))
+                w_item.setFlags(w_item.flags() & ~Qt.ItemIsEditable)
+                self.ramTable.setItem(i, 2, w_item)
+            else:
+                blank = QTableWidgetItem("")
+                blank.setFlags(blank.flags() & ~Qt.ItemIsEditable)
+                self.ramTable.setItem(i, 2, blank)
+            # WordValue editable for each word row (only first of each 4)
+            self.ramTable.setItem(i, 3, QTableWidgetItem(""))
+        # Đặt kích thước cột hợp lý
+        self.ramTable.resizeColumnsToContents()
+        self.ramTable.setFixedWidth(450)
+        self.ramTable.verticalHeader().setVisible(False)
+        self.reg_layout.addWidget(self.ramTable, 0, 2, 5, 1)
+        
+
         self.n_flag = QtWidgets.QLabel(self.reg_frame)
         self.n_flag.setStyleSheet("background-color: lightgray;\n"
                                  "border: 2px solid black;\n"
@@ -178,7 +213,7 @@ class Ui_MainWindow(object):
                                  "font-size: 16px;\n"
                                  "qproperty-alignment: AlignCenter;\n")
         self.n_flag.setObjectName("n_flag")
-        self.reg_layout.addWidget(self.n_flag, 0, 1, 1, 1)
+        self.reg_layout.addWidget(self.n_flag, 0, 3, 1, 1)
         
         self.z_flag = QtWidgets.QLabel(self.reg_frame)
         self.z_flag.setStyleSheet("background-color: lightgray;\n"
@@ -188,7 +223,7 @@ class Ui_MainWindow(object):
                                  "font-size: 16px;\n"
                                  "qproperty-alignment: AlignCenter;\n")
         self.z_flag.setObjectName("z_flag")
-        self.reg_layout.addWidget(self.z_flag, 1, 1, 1, 1)
+        self.reg_layout.addWidget(self.z_flag, 1, 3, 1, 1)
         
         self.c_flag = QtWidgets.QLabel(self.reg_frame)
         self.c_flag.setStyleSheet("background-color: lightgray;\n"
@@ -198,7 +233,7 @@ class Ui_MainWindow(object):
                                  "font-size: 16px;\n"
                                  "qproperty-alignment: AlignCenter;\n")
         self.c_flag.setObjectName("c_flag")
-        self.reg_layout.addWidget(self.c_flag, 2, 1, 1, 1)
+        self.reg_layout.addWidget(self.c_flag, 2, 3, 1, 1)
         
         self.v_flag = QtWidgets.QLabel(self.reg_frame)
         self.v_flag.setStyleSheet("background-color: lightgray;\n"
@@ -208,7 +243,7 @@ class Ui_MainWindow(object):
                                  "font-size: 16px;\n"
                                  "qproperty-alignment: AlignCenter;\n")
         self.v_flag.setObjectName("v_flag")
-        self.reg_layout.addWidget(self.v_flag, 3, 1, 1, 1)
+        self.reg_layout.addWidget(self.v_flag, 3, 3, 1, 1)
         
         self.top_layout.addWidget(self.reg_frame)
         
@@ -245,7 +280,8 @@ class Ui_MainWindow(object):
         self.save_bottom.setText(_translate("MainWindow", "Save"))
         self.run_all_bottom.setText(_translate("MainWindow", "Run all"))
         self.run_step_bottom.setText(_translate("MainWindow", "Run by step"))
-        self.stop_bottom.setText(_translate("MainWindow", "Stop"))
+        self.stop_bottom.setText(_translate("MainWindow", "Stop/Continue"))
+        self.help_bottom.setText(_translate("MainWindow", "Instructions"))
         self.registerShow.verticalHeaderItem(0).setText(_translate("MainWindow", "X0"))
         self.registerShow.verticalHeaderItem(1).setText(_translate("MainWindow", "X1"))
         self.registerShow.verticalHeaderItem(2).setText(_translate("MainWindow", "X2"))

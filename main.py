@@ -4,7 +4,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import simulate        # module của bạn chứa show_polygons_and_lines, animate_squares_along_paths
 from mainwindow_ui import Ui_MainWindow  # file pyuic5 sinh ra
 from matplotlib.animation import FuncAnimation
-from process import handle_open_file, handle_close_file
+from process import handle_open_file, handle_close_file, handle_save_file
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -34,6 +34,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.ui.open_bottom.clicked.connect(lambda: handle_open_file(self.ui))
         self.ui.close_bottom.clicked.connect(lambda: handle_close_file(self.ui))
+        self.ui.save_bottom.clicked.connect(lambda: handle_save_file(self.ui))
         self.ui.run_all_bottom.clicked.connect(self.simulate_add)  # Thêm dòng này
         self.ui.run_step_bottom.clicked.connect(self.simulate_add_step)  # Kết nối nút step
 
