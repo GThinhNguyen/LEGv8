@@ -242,6 +242,22 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
     squares = []
     bit_tuple = bits.get_bits_for_path(start_block, ui)  # tuple chứa các chuỗi bit cho từng path
+    print(bit_tuple)
+  
+    # Cập nhật giá trị bit cho các line tiếp theo và cập nhật bits.data
+    next_blocks = line_next[start_block]
+
+    for i, next_line in enumerate(next_blocks):
+        # Gán giá trị bit cho connection_map
+        bit_str = bit_tuple[i]
+        if next_line in connection_map:
+            for conn in connection_map[next_line]:
+                conn['value'] = str(bit_str)
+
+                # Cập nhật bits.data nếu cần
+                bits.data[conn['to']] [conn['port']] = conn['value']
+
+
 
     def spawn_square(path, to_key, bit_str):
         key = (start_block, to_key)
