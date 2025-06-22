@@ -149,10 +149,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_step = 0
 
         block = order[self.current_step]
+        
 
         # Animate block/line hiện tại
         self.ani = simulate.animate_square_from_block(
-            self.ax, block, simulate.lines, simulate.line_next, interval=20, speed=5
+            self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=20, speed=5
         )
         self.canvas.draw_idle()
         self.current_step += 1

@@ -78,14 +78,22 @@ def assemble_instruction(inst_str):
 
     return format(instr, '032b')
 
-def get_bits_for_path(block, to_key=None, ui=None):
+def get_bits_for_path(block, ui = None):
     # Trả về giá trị hoặc hàm trả giá trị dạng chuỗi
     if block in ['M1', 'M2', 'M3', 'M4']:
         return lambda: data[block]['Inp0'] if data[block]['Control'] == '0' else data[block]['Inp1']
     if block in ['P1', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8']:
-        return lambda: data[block]['Val']
+        return data[block]['Val']
     if block == 'P2':
-        return lambda: (data['P2']['Val'][5:9], data['P2']['Val'][16:20], data['P2']['Val'][21:31])
+        # Trả về tuple các trường opcode, Rn, Rm, Rd, full instruction từ chuỗi nhị phân 32 bit
+        val = data['P2']['Val']
+        return (
+            val[0:11],   # opcode (bits 0-10)
+            val[12:17],  # Rn (bits 12-16)
+            val[16:21],  # Rm (bits 16-20)
+            val[21:26],  # Rd (bits 21-25)
+            val          # full 32-bit instruction
+        )
     if block in ['ADD1', 'ADD2']:
         return lambda: str(int(data[block]['Inp0']) + int(data[block]['Inp1']))
     if block == 'XOR':
@@ -93,19 +101,23 @@ def get_bits_for_path(block, to_key=None, ui=None):
     if block in ['AND1', 'AND2']:
         return lambda: format(int(data[block]['Inp0'],2) & int(data[block]['Inp1'],2), 'b')
     if block == 'Control':
-      # tra ve mang Reg2Loc UncondBranch FlagBranch ZeroBranch memRead memtoReg MemWrite FlagWrite ALUSrc ALUOp   RegWrite
+        # tra ve mang Reg2Loc UncondBranch FlagBranch ZeroBranch memRead memtoReg MemWrite FlagWrite ALUSrc ALUOp RegWrite
         inp = data['Control']['Inp']
         controls = {
-            '10001011000': '00000000011',  # ADD
-            '11001011000': '00000000011',  # SUB
-            '10001010000': '00000000011',  # AND
-            '10101010000': '00000000011',  # ORR
-            '11111000010': '00001100101',  # LDUR
-            '11111000000': '10000010100',  # STUR
-            '00010100000': '01000000000',  # B
-            '10110100000': '10010000000'   # CBZ
+            '10001011000': '0,0,0,0,0,0,0,1,0,10,1',  # ADD
+            '11001011000': '0,0,0,0,0,0,0,1,0,10,1',  # SUB
+            '10001010000': '0,0,0,0,0,0,0,1,0,10,1',  # AND
+            '10101010000': '0,0,0,0,0,0,0,1,0,10,1',  # ORR
+            '11111000010': '0,0,0,0,1,1,0,0,1,00,1',  # LDUR
+            '11111000000': '1,0,0,0,0,0,1,0,1,00,0',  # STUR
+            '00010100000': '0,1,0,0,0,0,0,0,0,00,0',  # B
+            '10110100000': '1,0,1,1,0,0,0,0,0,01,0'   # CBZ
         }
-        return controls.get(inp, '0'*12)
+        if inp in controls:
+        # Trả về list các bit control theo đúng thứ tự
+            return tuple(controls[inp].split(','))
+        else:
+            raise KeyError(f"Unrecognized opcode: {inp}")
     if block == 'SE':
         inp = data['SE']['Inp']
         sign = inp[0]
@@ -129,7 +141,7 @@ def get_bits_for_path(block, to_key=None, ui=None):
     if block == 'IM':
         addr = int(data['IM']['ReadAddress'], 2)
         idx = addr // 4
-        lines = main.ui.textEdit.toPlainText().splitlines()
+        lines = ui.codeEditor.toPlainText().splitlines()        
         if 0 <= idx < len(lines):
             return assemble_instruction(lines[idx].strip())
         return '0'*32
@@ -181,7 +193,7 @@ def get_bits_for_path(block, to_key=None, ui=None):
             elif op == '0001': res = a | b
             elif op == '0111': res = a ^ b
             else: res = 0
-            return format(res, 'b')
+            return format(res, 'b'), lambda: 1 if res == 0 else 0
         return alu
     if block == 'Flags':
         def fl():
@@ -191,3 +203,5 @@ def get_bits_for_path(block, to_key=None, ui=None):
         return fl
 
     return None
+
+
