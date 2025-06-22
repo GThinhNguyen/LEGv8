@@ -178,9 +178,9 @@ class Ui_MainWindow(object):
         self.ramTable = QTableWidget(self.reg_frame)
         self.ramTable.setObjectName("ramTable")
         self.ramTable.setColumnCount(4)
-        self.ramTable.setRowCount(256)
+        self.ramTable.setRowCount(512)
         self.ramTable.setHorizontalHeaderLabels(["ByteAddress", "ByteValue", "WordAddress", "WordValue"])
-        for i in range(256):
+        for i in range(512):
             # ByteAddress
             item_addr = QTableWidgetItem(str(i))
             item_addr.setFlags(item_addr.flags() & ~Qt.ItemIsEditable)
@@ -197,13 +197,28 @@ class Ui_MainWindow(object):
                 blank.setFlags(blank.flags() & ~Qt.ItemIsEditable)
                 self.ramTable.setItem(i, 2, blank)
             # WordValue editable for each word row (only first of each 4)
-            self.ramTable.setItem(i, 3, QTableWidgetItem(""))
+            if i % 4 == 0:
+                self.ramTable.setItem(i, 3, QTableWidgetItem(""))
+            else:
+                # merge cells visually unused
+                blank2 = QTableWidgetItem("")
+                blank2.setFlags(blank2.flags() & ~Qt.ItemIsEditable)
+                self.ramTable.setItem(i, 3, blank2)
+            
+            for col in range(4):
+                item = self.ramTable.item(i, col)
+                if item is not None:
+                    if item.flags() & Qt.ItemIsEditable:
+                        # Ô có thể nhập liệu: màu vàng nhạt
+                        item.setBackground(QColor(255, 255, 200))
+                    else:
+                        # Ô không nhập liệu: màu xám nhạt
+                        item.setBackground(QColor(240, 240, 240))
         # Đặt kích thước cột hợp lý
         self.ramTable.resizeColumnsToContents()
         self.ramTable.setFixedWidth(450)
         self.ramTable.verticalHeader().setVisible(False)
         self.reg_layout.addWidget(self.ramTable, 0, 2, 5, 1)
-        
 
         self.n_flag = QtWidgets.QLabel(self.reg_frame)
         self.n_flag.setStyleSheet("background-color: lightgray;\n"
@@ -274,7 +289,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "LEGv8 Simulator"))
         self.open_bottom.setText(_translate("MainWindow", "Open file"))
         self.close_bottom.setText(_translate("MainWindow", "Close file"))
         self.save_bottom.setText(_translate("MainWindow", "Save"))

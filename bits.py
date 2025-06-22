@@ -78,7 +78,7 @@ def assemble_instruction(inst_str):
 
     return format(instr, '032b')
 
-def get_bits_for_path(block, to_key=None):
+def get_bits_for_path(block, to_key=None, ui=None):
     # Trả về giá trị hoặc hàm trả giá trị dạng chuỗi
     if block in ['M1', 'M2', 'M3', 'M4']:
         return lambda: data[block]['Inp0'] if data[block]['Control'] == '0' else data[block]['Inp1']

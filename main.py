@@ -16,6 +16,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
+        self.ui.ramTable.itemChanged.connect(self.handle_ram_item_changed)
+        self.ui.ramTable.cellClicked.connect(self.save_old_value)
+        self._old_ram_value = ""
         # Tạo figure và canvas
         self.fig, self.ax = simulate.plt.subplots(figsize=(30, 18))
         simulate.show_polygons(self.ax, simulate.polygons)
@@ -38,6 +41,57 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.run_all_bottom.clicked.connect(self.simulate_add)  # Thêm dòng này
         self.ui.run_step_bottom.clicked.connect(self.simulate_add_step)  # Kết nối nút step
 
+    def save_old_value(self, row, col):
+        item = self.ui.ramTable.item(row, col)
+        self._old_ram_value = item.text() if item else ""
+    # Xử lý sự kiện khi người dùng thay đổi giá trị trong bảng RAM
+    def handle_ram_item_changed(self, item):
+        row = item.row()
+        col = item.column()
+        # ByteValue (cột 1): chỉ cho phép nhập 8 bit nhị phân
+        if col == 1:
+            val = item.text()
+            if len(val) != 8 or any(c not in '01' for c in val):
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "ByteValue chỉ cho phép nhập 8 ký tự 0 hoặc 1.")
+                item.setText(self._old_ram_value)
+                return
+            # Cập nhật WordValue (cột 3) nếu là dòng đầu của word
+            word_row = row - (row % 4)
+            word = 0
+            for i in range(4):
+                byte_item = self.ui.ramTable.item(word_row + i, 1)
+                byte_str = byte_item.text() if byte_item else "00000000"
+                if len(byte_str) == 8 and all(c in '01' for c in byte_str):
+                    byte_val = int(byte_str, 2)
+                else:
+                    byte_val = 0
+                word |= (byte_val << (8 * (3 - i)))
+            # Xử lý số âm (signed 32-bit)
+            if word & 0x80000000:
+                word = word - 0x100000000
+            word_item = self.ui.ramTable.item(word_row, 3)
+            if word_item:
+                word_item.setText(str(word))
+        # WordValue (cột 3): chỉ cho phép nhập số nguyên có dấu 32 bit
+        elif col == 3:
+            val = item.text()
+            try:
+                num = int(val)
+                if not (-2147483648 <= num <= 2147483647):
+                    raise ValueError
+            except Exception:
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "WordValue chỉ cho phép nhập số nguyên có dấu từ -2147483648 đến 2147483647.")
+                item.setText(self._old_ram_value)
+                return
+            # Cập nhật 4 ByteValue (cột 1) tương ứng
+            # Nếu là số âm, chuyển về unsigned 32-bit để tách byte
+            num_unsigned = num & 0xFFFFFFFF
+            for i in range(4):
+                byte_val = (num_unsigned >> (8 * (3 - i))) & 0xFF
+                byte_str = format(byte_val, '08b')
+                byte_item = self.ui.ramTable.item(row + i, 1)
+                if byte_item:
+                    byte_item.setText(byte_str)
 
     def simulate_add(self):
         # Lấy lệnh từ code frame
