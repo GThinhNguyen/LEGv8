@@ -278,6 +278,16 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             sq = ax.existing_squares[key]
             sq['distance_travelled'] = 0.0
             sq['text'].set_text(bit_str)
+            # Cập nhật lại kích thước ô vuông cho khít text mới
+            renderer = ax.figure.canvas.get_renderer()
+            sq['text'].set_text(bit_str)
+            bbox = sq['text'].get_window_extent(renderer=renderer)
+            inv = ax.transData.inverted()
+            bbox_data = bbox.transformed(inv)
+            width = bbox_data.width
+            height = bbox_data.height
+            sq['patch'].set_width(width)
+            sq['patch'].set_height(height)
             squares.append(sq)
         else:
             temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
