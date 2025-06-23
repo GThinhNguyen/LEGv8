@@ -54,6 +54,7 @@ def assemble_instruction(inst_str):
         shamt = 0
         instr = (opcode << 21) | (rm << 16) | (shamt << 10) | (rn << 5) | rd
     elif op == 'LDUR':
+        # cú pháp: LDUR Xd, [Xn, #imm]
         rt = int(parts[1].replace('X',''))
         rn = int(parts[2].replace('X',''))
         imm = int(parts[3].lstrip('#'))
@@ -172,14 +173,14 @@ def get_bits_for_path(block, ui = None):
         def reg_out():
             r1 = int(data['Reg']['ReadRegister1'], 2)
             r2 = int(data['Reg']['ReadRegister2'], 2)
-            return (format(get_register_value(r1, ui), 'b'), format(get_register_value(r2, ui), 'b'))
+            return (get_register_value(r1, ui), format(get_register_value(r2, ui)))
         return reg_out()
     
     if block == 'Mem':
-        addr = int(data['Mem']['Address'], 2)
+        addr = int(data['Mem']['Address'], 10)
         word_row = (addr // 4) * 4
         if data['Mem']['MemWrite'] == '1':
-            val = int(data['Mem']['WriteData'], 2)
+            val = int(data['Mem']['WriteData'], 10)
             w_item = main.ui.ramTable.item(word_row, 3)
             if w_item:
                 w_item.setText(str(val))
@@ -196,8 +197,8 @@ def get_bits_for_path(block, ui = None):
         return ('0' * 32,)
 
     if block == 'ALU':
-        a = int(data['ALU']['ReadData1'],2)
-        b = int(data['ALU']['ReadData2'],2)
+        a = int(data['ALU']['ReadData1'],10)
+        b = int(data['ALU']['ReadData2'],10)
         op = data['ALU']['ALUControl']
         if op == '0010': res = a + b
         elif op == '0110': res = a - b
@@ -210,7 +211,7 @@ def get_bits_for_path(block, ui = None):
         cFlag = 1 if res > 0xFFFFFFFF else 0
         vFlag = 1 if (a < 0 and b < 0 and res >= 0) or (a >= 0 and b >= 0 and res < 0) else 0
         Flag = str(nFlag) + str(zeroFlag) + str(cFlag) + str(vFlag)
-        return (zeroFlag ,format(res, 'b'), Flag)
+        return (zeroFlag ,res, Flag)
     if block == 'Flags':
         control = data['Flags']['Control']
         if control == '1':

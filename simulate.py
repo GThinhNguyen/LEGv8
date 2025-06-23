@@ -171,7 +171,7 @@ connection_map = {
     'L20': [{'to': 'Flags', 'port': 'Control', 'value': '0'}],
     'L21': [{'to': 'M2', 'port': 'Control', 'value': '0'}],
     'L22': [{'to': 'ALUControl', 'port': 'ALUop', 'value': '0'}],
-    'L23': [{'to': 'Reg', 'port': 'Control', 'value': '0'}],
+    'L23': [{'to': 'Reg', 'port': 'RegWrite', 'value': '0'}],
     'L24': [{'to': 'ALU', 'port': 'ALUControl', 'value': '0'}],
     'L25': [{'to': 'AND2', 'port': 'Inp1', 'value': '0'}],
     'L26': [{'to': 'OR', 'port': 'Inp1', 'value': '0'}],
@@ -261,6 +261,19 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
     def spawn_square(path, to_key, bit_str):
         key = (start_block, to_key)
+        key = (start_block, to_key)
+        # Nếu start_block là point, xóa các square có đích là point này trước khi spawn mới
+        if start_block in points:
+            for k, sq in ax.existing_squares.items():
+                print(k, sq)
+                remove_keys = [
+                    k for k, sq in ax.existing_squares.items()
+                    if any(conn['to'] == start_block for conn in connection_map.get(sq['to'], []))
+                ]            
+            for k in remove_keys:
+                sq_rm = ax.existing_squares.pop(k)
+                sq_rm['patch'].remove()
+                sq_rm['text'].remove()
         if key in ax.existing_squares:
             sq = ax.existing_squares[key]
             sq['distance_travelled'] = 0.0

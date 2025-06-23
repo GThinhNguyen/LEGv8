@@ -4,6 +4,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import simulate        # module của bạn chứa show_polygons_and_lines, animate_squares_along_paths
 from mainwindow_ui import Ui_MainWindow  # file pyuic5 sinh ra
 from matplotlib.animation import FuncAnimation
+import bits  # module của bạn chứa dữ liệu bits
 from process import handle_open_file, handle_close_file, handle_save_file
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -167,6 +168,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ani = simulate.animate_square_from_block(
             self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=20, speed=5
         )
+        if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
+            code = self.ui.codeEditor.toPlainText().strip()
+            if code:
+                line = code.splitlines()[0]
+                parts = line.replace(',', '').split()
+                if len(parts) == 4:
+                    _, dst, _, _ = parts
+                    try:
+                        rd_idx = int(dst[1:])
+                        # Lấy giá trị WriteData từ bits.data
+                        rd_val = bits.data['Reg']['WriteData']
+                        # Ghi giá trị này vào RegisterShow
+                        self.ui.registerShow.setItem(rd_idx, 0, QtWidgets.QTableWidgetItem(str(rd_val)))
+                    except Exception:
+                        pass
+
         self.canvas.draw_idle()
         self.current_step += 1
 
