@@ -11,7 +11,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # self.ani = None  # Thêm dòng này để giữ animation
+        self.ani = None  # Thêm dòng này để giữ animation
 
         # Thiết lập UI
         self.ui = Ui_MainWindow()
@@ -158,8 +158,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Khởi tạo biến đếm bước nếu chưa có
         if not hasattr(self, 'current_step'):
             self.current_step = 0
-
-        
         # Nếu đã hết order thì quay lại đầu
         if self.current_step >= len(order):
             self.current_step = 0
@@ -167,11 +165,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         block = order[self.current_step]
         
-
         # Animate block/line hiện tại
+        if self.ani:
+            self.ani.event_source.stop()
         self.ani = simulate.animate_square_from_block(
             self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=20, speed=5
         )
+
         if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
             rd= bits.data['Reg']['WriteRegister']
             rd_value = bits.data['Reg']['WriteData']

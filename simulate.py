@@ -246,6 +246,9 @@ def show_points(ax, point_coords):
     for name, (x, y) in point_coords.items():
         ax.plot(x, y, 'o', color='red', markersize=8, zorder=20)
 
+
+
+
 def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=2):
     import matplotlib.patches as patches
     import matplotlib.animation as animation
@@ -253,7 +256,19 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
     if not hasattr(ax, 'existing_squares'):
         ax.existing_squares = {}
 
-    squares = []
+
+    # Đưa tất cả các ô vuông cũ về cuối đường trước khi xóa hoặc tạo mới
+    for sq in ax.existing_squares.values():
+        path = sq['path']
+        seg_lens = np.linalg.norm(np.diff(path, axis=0), axis=1)
+        total_len = np.sum(seg_lens)
+        sq['distance_travelled'] = total_len
+        pos = path[-1]
+        sq['patch'].set_xy((pos[0] - sq['patch'].get_width()/2, pos[1] - sq['patch'].get_height()/2))
+        sq['text'].set_position((pos[0], pos[1]))
+
+    move_squares = []
+
     bit_tuple = bits.get_bits_for_path(start_block, ui)  # tuple chứa các chuỗi bit cho từng path
 
     #in số lượng bit_tuple
@@ -271,22 +286,20 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
                 # Cập nhật bits.data nếu cần
                 bits.data[conn['to']] [conn['port']] = conn['value']
 
-
-
     def spawn_square(path, to_key, bit_str):
-        key = (start_block, to_key)
         key = (start_block, to_key)
         # Nếu start_block là point, xóa các square có đích là point này trước khi spawn mới
         if start_block in points:
-            for k, sq in ax.existing_squares.items():
-                remove_keys = [
-                    k for k, sq in ax.existing_squares.items()
-                    if any(conn['to'] == start_block for conn in connection_map.get(sq['to'], []))
-                ]            
+            remove_keys = [
+                k for k, sq in ax.existing_squares.items()
+                if any(conn['to'] == start_block for conn in connection_map.get(sq['to'], []))
+            ]
             for k in remove_keys:
                 sq_rm = ax.existing_squares.pop(k)
                 sq_rm['patch'].remove()
                 sq_rm['text'].remove()
+
+    
         if key in ax.existing_squares:
             sq = ax.existing_squares[key]
             sq['distance_travelled'] = 0.0
@@ -301,7 +314,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             height = bbox_data.height
             sq['patch'].set_width(width)
             sq['patch'].set_height(height)
-            squares.append(sq)
+            move_squares.append(sq)
         else:
             temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
             renderer = ax.figure.canvas.get_renderer()
@@ -312,12 +325,17 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             height = bbox_data.height
             temp_text.remove()
 
-            rect = patches.Rectangle((0, 0), width, height, color='blue', zorder=10)
+            start_pos = path[0]
+            rect = patches.Rectangle(
+                (start_pos[0] - width/2, start_pos[1] - height/2), width, height, color='blue', zorder=100
+            )
             ax.add_patch(rect)
-            text = ax.text(width/2, height/2, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
+            text = ax.text(
+                start_pos[0], start_pos[1], bit_str, color='white', ha='center', va='center', fontsize=10, zorder=101
+            )
             sq = {'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key}
             ax.existing_squares[key] = sq
-            squares.append(sq)
+            move_squares.append(sq)
 
     spawned = set()
     next_blocks = [n for n in line_next.get(start_block, []) if n in lines]
@@ -336,7 +354,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
     def update(frame):
         active_patches = []
-        for sq in squares:
+        for sq in move_squares:
             path = sq['path']
             distance_travelled = sq['distance_travelled']
             seg_lens = np.linalg.norm(np.diff(path, axis=0), axis=1)
@@ -361,7 +379,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             active_patches.append(sq['text'])
         return active_patches
 
-    ani = animation.FuncAnimation(ax.figure, update, interval=interval, blit=False, cache_frame_data=False)
+    ani = animation.FuncAnimation(ax.figure, update, interval=30, blit=False, cache_frame_data=False)
     return ani
 
 # --- Dữ liệu polygons và lines giữ nguyên như bạn đã có ở trên ---
