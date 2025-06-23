@@ -34,6 +34,13 @@ data = {
     'P8': {'Inp0': '0'}
 }
 
+def bin_to_signed(s):
+    value = int(s, 2)
+    bits = len(s)
+    if value >= 2**(bits - 1):
+        value -= 2**bits
+    return value
+
 def get_register_value(idx, ui):
     item = ui.registerShow.item(idx, 0)
     return int(item.text()) if item and item.text().isdigit() else 0
@@ -139,13 +146,15 @@ def get_bits_for_path(block, ui = None):
             imm = instr[6:32]
         else:
             # Không phải lệnh có immediate
-            return ('0' * 64,)
+            return ('0',)
 
         # sign-extend lên 64 bit
         sign_bit = imm[0]
         extended = sign_bit * (64 - len(imm)) + imm
+        # Trả về giá trị đã sign-extend
+        kq = bin_to_signed(extended)
 
-        return (extended,)
+        return (kq,)
     if block == 'ALUControl':
         aluop = data['ALUControl']['ALUop']
         ins   = data['ALUControl']['Ins']

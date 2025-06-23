@@ -221,16 +221,16 @@ def show_polygons(ax, polygons_dict):
         poly = np.array(poly)
         if poly.ndim != 2 or poly.shape[0] < 2:
             continue  # Skip empty or invalid polygons
-        ax.plot(*poly.T, lw=2)
+        ax.plot(*poly.T, lw=2, color='red')
         if not np.allclose(poly[0], poly[-1]):
-            ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2)
+            ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2, color='red')
 
 def show_lines(ax, lines_dict):
     for line in lines_dict.values():
         line = np.array(line)
         if line.ndim != 2 or line.shape[0] < 2:
             continue
-        ax.plot(*line.T, lw=2, color='red')
+        ax.plot(*line.T, lw=2, color='black')
 
 def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=2):
     import matplotlib.patches as patches
