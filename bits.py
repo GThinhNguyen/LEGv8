@@ -124,13 +124,14 @@ def get_bits_for_path(block, ui = None):
             '10101010000': '0,0,0,0,0,0,0,0,0,10,1',  # ORR
             '11111000010': '0,0,0,0,1,1,0,0,1,00,1',  # LDUR
             '11111000000': '1,0,0,0,0,0,1,0,1,00,0',  # STUR
-            '00010100000': '0,1,0,0,0,0,0,0,0,00,0',  # B
-            '10110100000': '1,0,1,1,0,0,0,0,0,01,0'   # CBZ
         }
         if inp in controls:
             return tuple(controls[inp].split(','))
-        else:
-            raise KeyError(f"Unrecognized opcode: {inp}")
+        if inp[0:8] == '10110100':  # CBZ
+            return ('1', '0', '1', '1', '0', '0', '0', '0', '0', '01', '0')
+        if inp[0:6] == '000101':  # B
+            return ('0', '1', '0', '0', '0', '0', '0', '0', '0', '00', '0')
+        raise KeyError(f"Unrecognized opcode: {inp}")
     if block == 'SE':
         instr = data['SE']['Inp']  # chuỗi 32-bit: instr[0] = bit 31, instr[31] = bit 0
         opcode1 = instr[0:11]       # 11-bit opcode
