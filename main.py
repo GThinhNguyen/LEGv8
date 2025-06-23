@@ -148,6 +148,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def simulate_add_step(self):
         # Danh sách các block theo thứ tự animation
+        current_line_idx = self.ui.codeEditor.textCursor().blockNumber() if self.ui.codeEditor.textCursor() else 0
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control', 'P4', 'ALUControl', 'P3', 'M1', 'Reg', 'P5',
             'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 'M3', 'Flags', 'AND1', 'AND2', 'OR',
@@ -157,10 +158,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Khởi tạo biến đếm bước nếu chưa có
         if not hasattr(self, 'current_step'):
             self.current_step = 0
+
         
         # Nếu đã hết order thì quay lại đầu
         if self.current_step >= len(order):
             self.current_step = 0
+            current_line_idx +=1
 
         block = order[self.current_step]
         
@@ -170,20 +173,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=20, speed=5
         )
         if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
-            code = self.ui.codeEditor.toPlainText().strip()
-            if code:
-                line = code.splitlines()[0]
-                parts = line.replace(',', '').split()
-                if len(parts) == 4:
-                    _, dst, _, _ = parts
-                    try:
-                        rd_idx = int(dst[1:])
-                        # Lấy giá trị WriteData từ bits.data
-                        rd_val = bits.data['Reg']['WriteData']
-                        # Ghi giá trị này vào RegisterShow
-                        self.ui.registerShow.setItem(rd_idx, 0, QtWidgets.QTableWidgetItem(str(rd_val)))
-                    except Exception:
-                        pass
+            rd= bits.data['Reg']['WriteRegister']
+            rd_value = bits.data['Reg']['WriteData']
+            self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
 
         self.canvas.draw_idle()
         self.current_step += 1

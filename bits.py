@@ -110,7 +110,7 @@ def get_bits_for_path(block, ui = None):
         return (opcode, rn, rm, rd, instr)
         
     if block in ['ADD2', 'ADD1']:
-        return (format(int(data[block]['Inp0']) + int(data[block]['Inp1']), 'b'),)
+        return (int(data[block]['Inp0']) + int(data[block]['Inp1']),)
     if block == 'OR':
         return (format(int(data['OR']['Inp0'],2) | int(data['OR']['Inp1'],2) | int(data['OR']['Inp2'],2), 'b'),)
     if block in ['AND1', 'AND2']:
@@ -172,7 +172,7 @@ def get_bits_for_path(block, ui = None):
     if block == 'PC':
         return (data['PC']['Inp0'],)
     if block == 'IM':
-        addr = int(data['IM']['ReadAddress'], 2)
+        addr = int(data['IM']['ReadAddress'])
         idx = addr // 4
         lines = ui.codeEditor.toPlainText().splitlines()        
         if 0 <= idx < len(lines):
@@ -189,15 +189,14 @@ def get_bits_for_path(block, ui = None):
         addr = int(data['Mem']['Address'], 10)
         if data['Mem']['MemRead'] == '1':
             item = ui.ramTable.item(addr, 3)
-            print(item.text())
             val = int(item.text()) if item and item.text().isdigit() else 0
             print(val)
             return (val,)
 
         if data['Mem']['MemWrite'] == '1':
-            item = ui.ramTable.item(word_row, 3)
-            val = int(item.text()) if item and item.text().isdigit() else 0
-            return (format(val, '032b'),)
+            write_data = int(data['Mem']['WriteData'], 10)
+            ui.ramTable.setItem(addr, 3, mainwindow_ui.QTableWidgetItem(str(write_data)))
+            return ('0',)
         return ('0',)
 
     if block == 'ALU':

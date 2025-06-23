@@ -171,7 +171,7 @@ line_next = {
 
 # key là tên block, value là list các dict chứa thông tin đối tượng đích, cổng và giá trị hiện tại
 connection_map = {
-    'L13': [{'to': 'M1', 'port': 'Inp1', 'value': '0'}],
+    'L13': [{'to': 'M1', 'port': 'Control', 'value': '0'}],
     'L14': [{'to': 'OR', 'port': 'Inp0', 'value': '0'}],
     'L15': [{'to': 'AND1', 'port': 'Inp0', 'value': '0'}],
     'L16': [{'to': 'AND2', 'port': 'Inp0', 'value': '0'}],
