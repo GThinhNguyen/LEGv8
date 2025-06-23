@@ -214,6 +214,7 @@ class Ui_MainWindow(object):
                     else:
                         # Ô không nhập liệu: màu xám nhạt
                         item.setBackground(QColor(240, 240, 240))
+
         # Đặt kích thước cột hợp lý
         self.ramTable.resizeColumnsToContents()
         self.ramTable.setFixedWidth(450)
@@ -271,6 +272,8 @@ class Ui_MainWindow(object):
         self.sim_frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.sim_frame.setLineWidth(2)
         self.sim_frame.setObjectName("sim_frame")
+        self.sim_frame.setMinimumSize(1000, 1000)  # Thêm dòng này để đổi kích thước
+        
         
         self.main_layout.addWidget(self.sim_frame, stretch=1)
         

@@ -216,7 +216,6 @@ connection_map = {
 }
 
 
-
 def show_polygons(ax, polygons_dict):
     for poly in polygons_dict.values():
         poly = np.array(poly)

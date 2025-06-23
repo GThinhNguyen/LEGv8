@@ -29,6 +29,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ax.axis('off')
         self.canvas = FigureCanvas(self.fig)
 
+        self.fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
+        scale = 0.7
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()
+        cx = (xlim[0] + xlim[1]) / 2
+        cy = (ylim[0] + ylim[1]) / 2 + 220
+        width = (xlim[1] - xlim[0]) / scale
+        height = (ylim[1] - ylim[0]) / scale
+        self.ax.set_xlim(cx - width/2, cx + width/2)
+        self.ax.set_ylim(cy - height/2, cy + height/2)
+
         # Đặt canvas vào sim_frame
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
