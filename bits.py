@@ -187,23 +187,18 @@ def get_bits_for_path(block, ui = None):
     
     if block == 'Mem':
         addr = int(data['Mem']['Address'], 10)
-        word_row = (addr // 4) * 4
-        if data['Mem']['MemWrite'] == '1':
-            val = int(data['Mem']['WriteData'], 10)
-            w_item = main.ui.ramTable.item(word_row, 3)
-            if w_item:
-                w_item.setText(str(val))
-            for i in range(4):
-                byte_val = (val >> (8 * (3 - i))) & 0xFF
-                b_item = main.ui.ramTable.item(word_row + i, 1)
-                if b_item:
-                    b_item.setText(str(byte_val))
-            return ('',)
         if data['Mem']['MemRead'] == '1':
-            item = main.ui.ramTable.item(word_row, 3)
+            item = ui.ramTable.item(addr, 3)
+            print(item.text())
+            val = int(item.text()) if item and item.text().isdigit() else 0
+            print(val)
+            return (val,)
+
+        if data['Mem']['MemWrite'] == '1':
+            item = ui.ramTable.item(word_row, 3)
             val = int(item.text()) if item and item.text().isdigit() else 0
             return (format(val, '032b'),)
-        return ('0' * 32,)
+        return ('0',)
 
     if block == 'ALU':
         a = int(data['ALU']['ReadData1'],10)
@@ -232,10 +227,9 @@ def get_bits_for_path(block, ui = None):
     
     if block == 'SL2':
         inp = data['SL2']['Inp0'] 
-        val = int(inp, 2)        
-        shifted_val = val << 2   
-        shifted_bin = format(shifted_val & 0xFFFFFFFF, '032b')  
-        return (shifted_bin,)
+        val = int(inp, 10)     
+        shifted_val = val << 2    
+        return (shifted_val,)
         
     print(f"get_bits_for_path(): không hỗ trợ block {block}")
     return (None,)

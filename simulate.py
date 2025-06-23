@@ -28,7 +28,17 @@ polygons = {
     'SL2': np.array([[737, 168], [765, 168], [765, 168], [781, 201], [781, 201], [760, 235], [760, 235], [733, 237], [733, 237], [715, 203], [715, 203]])
 }
 
-points = {'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'}
+points = {
+    'P1': (83, 482),
+    'P2': (240, 474),
+    'P3': (352, 587),
+    'P4': (458, 738),
+    'P5': (625, 566),
+    'P6': (650, 625),
+    'P7': (945, 568),
+    'P8': (80, 221),
+}
+
 
 lines = {
     #From Control
@@ -232,6 +242,10 @@ def show_lines(ax, lines_dict):
             continue
         ax.plot(*line.T, lw=2, color='black')
 
+def show_points(ax, point_coords):
+    for name, (x, y) in point_coords.items():
+        ax.plot(x, y, 'o', color='red', markersize=8, zorder=20)
+
 def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=2):
     import matplotlib.patches as patches
     import matplotlib.animation as animation
@@ -265,7 +279,6 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
         # Nếu start_block là point, xóa các square có đích là point này trước khi spawn mới
         if start_block in points:
             for k, sq in ax.existing_squares.items():
-                print(k, sq)
                 remove_keys = [
                     k for k, sq in ax.existing_squares.items()
                     if any(conn['to'] == start_block for conn in connection_map.get(sq['to'], []))

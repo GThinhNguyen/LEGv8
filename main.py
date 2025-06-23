@@ -23,7 +23,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Tạo figure và canvas
         self.fig, self.ax = simulate.plt.subplots(figsize=(30, 18))
         simulate.show_polygons(self.ax, simulate.polygons)
-        simulate.show_lines(self.ax, simulate.lines)        
+        simulate.show_lines(self.ax, simulate.lines)
+        simulate.show_points(self.ax, simulate.points)       
         self.ax.set_aspect('equal')
         self.ax.autoscale(enable=True)
         self.ax.invert_yaxis()
