@@ -22,7 +22,7 @@ polygons = {
     'SE': np.array([[539, 688], [562, 688], [589, 737], [562, 787], [537, 787], [509, 739]]),
     'ALUControl': np.array([[721, 713], [750, 713], [773, 759], [748, 808], [719, 808], [692, 760]]),
     'Control': np.array([[424, 220], [455, 220], [478, 295], [478, 372], [453, 437], [426, 439], [397, 370], [397, 293]]),
-    'XOR': np.array([[1064, 241], [1083, 255], [1064, 274], [1041, 274], [1049, 259], [1041, 236]]),
+    'OR': np.array([[1064, 241], [1083, 255], [1064, 274], [1041, 274], [1049, 259], [1041, 236]]),
     'AND1': np.array([[874, 419], [907, 419], [918, 437], [901, 452], [873, 452]]),
     'AND2': np.array([[966, 421], [966, 460], [991, 460], [1007, 441], [986, 416]]),
     'SL2': np.array([[737, 168], [765, 168], [765, 168], [781, 201], [781, 201], [760, 235], [760, 235], [733, 237], [733, 237], [715, 203], [715, 203]])
@@ -128,7 +128,7 @@ lines = {
 
 line_next = {
     # Control outputs
-    'Control': ['L14', 'L15', 'L16', 'L17', 'L18', 'L19', 'L20', 'L21', 'L22', 'L23', 'L13'],
+    'Control': ['L13','L14', 'L15', 'L16', 'L17', 'L18', 'L19', 'L20', 'L21', 'L22', 'L23'],
     'PC': ['L58'],
     'IM': ['L29'],
     'Reg': ['L41', 'L42'],
@@ -137,22 +137,22 @@ line_next = {
     'Mem': ['L49'],
     'Flags': ['L60'],
     'ADD1': ['L8'],
-    'ADD2': ['L9a', 'L9b'],
+    'ADD2': ['L9b'],
     'AND1': ['L26'],
     'AND2': ['L28'],
-    'XOR': ['L27'],
+    'OR': ['L27'],
     'SL2': ['L57'],
     'M1': ['L50'],
     'M2': ['L51'],
     'M3': ['L52'],
-    'M4': ['L8'],
-
+    'M4': ['L9a'],
+    'SE': ['L54'],
 
     # Points to lines
     'P1': ['L59', 'L1'],
     'P2': ['L32', 'L33', 'L34', 'L36', 'L39'],
     'P3': ['L37', 'L38'],
-    'P4': ['L40', '53'],
+    'P4': ['L40', 'L53'],
     'P5': ['L43', 'L44'],
     'P6': ['L55', 'L56'],
     'P7': ['L46', 'L47'],
@@ -162,21 +162,21 @@ line_next = {
 # key là tên block, value là list các dict chứa thông tin đối tượng đích, cổng và giá trị hiện tại
 connection_map = {
     'L13': [{'to': 'M1', 'port': 'Inp1', 'value': '0'}],
-    'L14': [{'to': 'XOR', 'port': 'Inp0', 'value': '0'}],
+    'L14': [{'to': 'OR', 'port': 'Inp0', 'value': '0'}],
     'L15': [{'to': 'AND1', 'port': 'Inp0', 'value': '0'}],
     'L16': [{'to': 'AND2', 'port': 'Inp0', 'value': '0'}],
-    'L17': [{'to': 'Mem', 'port': 'ControlRead', 'value': '0'}],
+    'L17': [{'to': 'Mem', 'port': 'MemRead', 'value': '0'}],
     'L18': [{'to': 'M3', 'port': 'Control', 'value': '0'}],
-    'L19': [{'to': 'Mem', 'port': 'ControlWrite', 'value': '0'}],
+    'L19': [{'to': 'Mem', 'port': 'MemWrite', 'value': '0'}],
     'L20': [{'to': 'Flags', 'port': 'Control', 'value': '0'}],
     'L21': [{'to': 'M2', 'port': 'Control', 'value': '0'}],
-    'L22': [{'to': 'ALUControl', 'port': 'Control', 'value': '0'}],
+    'L22': [{'to': 'ALUControl', 'port': 'ALUop', 'value': '0'}],
     'L23': [{'to': 'Reg', 'port': 'Control', 'value': '0'}],
-    'L24': [{'to': 'ALU', 'port': 'Control', 'value': '0'}],
+    'L24': [{'to': 'ALU', 'port': 'ALUControl', 'value': '0'}],
     'L25': [{'to': 'AND2', 'port': 'Inp1', 'value': '0'}],
-    'L26': [{'to': 'XOR', 'port': 'Inp1', 'value': '0'}],
+    'L26': [{'to': 'OR', 'port': 'Inp1', 'value': '0'}],
     'L27': [{'to': 'M4', 'port': 'Control', 'value': '0'}],
-    'L28': [{'to': 'XOR', 'port': 'Inp2', 'value': '0'}],
+    'L28': [{'to': 'OR', 'port': 'Inp2', 'value': '0'}],
     'L29': [{'to': 'P2', 'port': 'Inp0', 'value': '0'}],
     'L32': [{'to': 'Control', 'port': 'Inp0', 'value': '0'}],
     'L33': [{'to': 'Reg', 'port': 'ReadRegister1', 'value': '0'}],
@@ -185,30 +185,30 @@ connection_map = {
     'L37': [{'to': 'M1', 'port': 'Inp1', 'value': '0'}],
     'L38': [{'to': 'Reg', 'port': 'WriteRegister', 'value': '0'}],
     'L39': [{'to': 'P4', 'port': 'Inp0', 'value': '0'}],
-    'L40': [{'to': 'SE', 'port': 'Inp0', 'value': '0'}],
-    'L41': [{'to': 'ALU', 'port': 'Inp0', 'value': '0'}],
+    'L40': [{'to': 'SE', 'port': 'Inp', 'value': '0'}],
+    'L41': [{'to': 'ALU', 'port': 'ReadData1', 'value': '0'}],
     'L42': [{'to': 'P5', 'port': 'Inp0', 'value': '0'}],
     'L43': [{'to': 'M2', 'port': 'Inp0', 'value': '0'}],
     'L44': [{'to': 'Mem', 'port': 'WriteData', 'value': '0'}],
     'L45': [{'to': 'P7', 'port': 'Inp0', 'value': '0'}],
     'L46': [{'to': 'Mem', 'port': 'Address', 'value': '0'}],
     'L47': [{'to': 'M3', 'port': 'Inp0', 'value': '0'}],
-    'L48': [{'to': 'Flags', 'port': 'Inp0', 'value': '0'}],
+    'L48': [{'to': 'Flags', 'port': 'NZCVtmp', 'value': '0'}],
     'L49': [{'to': 'M3', 'port': 'Inp1', 'value': '0'}],
     'L50': [{'to': 'Reg', 'port': 'ReadRegister2', 'value': '0'}],
-    'L51': [{'to': 'ALU', 'port': 'Inp1', 'value': '0'}],
+    'L51': [{'to': 'ALU', 'port': 'ReadData2', 'value': '0'}],
     'L52': [{'to': 'Reg', 'port': 'WriteData', 'value': '0'}],
-    'L53': [{'to': 'ALUControl', 'port': 'Inp0', 'value': '0'}],
+    'L53': [{'to': 'ALUControl', 'port': 'Ins', 'value': '0'}],
     'L54': [{'to': 'P6', 'port': 'Inp0', 'value': '0'}],
     'L55': [{'to': 'M2', 'port': 'Inp1', 'value': '0'}],
     'L56': [{'to': 'SL2', 'port': 'Inp0', 'value': '0'}],
     'L57': [{'to': 'ADD2', 'port': 'Inp1', 'value': '0'}],
     'L58': [{'to': 'P1', 'port': 'Inp0', 'value': '0'}],
     'L59': [{'to': 'IM', 'port': 'ReadAddress', 'value': '0'}],
-    'L60': [{'to': 'ADD1', 'port': 'Inp1', 'value': '0'}],
+    'L60': [{'to': 'AND1', 'port': 'Inp1', 'value': '0'}],
     'L1':  [{'to': 'P8', 'port': 'Inp0', 'value': '0'}],
     'L2':  [{'to': 'ADD1', 'port': 'Inp0', 'value': '0'}],
-    'L4':  [{'to': 'ADD1', 'port': 'Inp1', 'value': '0'}],
+    'L4':  [{'to': 'ADD1', 'port': 'Inp1', 'value': '100'}],
     'L5':  [{'to': 'ADD2', 'port': 'Inp0', 'value': '0'}],
     'L8':  [{'to': 'M4', 'port': 'Inp0', 'value': '0'}],
     'L9a': [{'to': 'PC', 'port': 'Inp0', 'value': '0'}],
@@ -242,8 +242,9 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
     squares = []
     bit_tuple = bits.get_bits_for_path(start_block, ui)  # tuple chứa các chuỗi bit cho từng path
-    print(bit_tuple)
-  
+
+    #in số lượng bit_tuple
+    print(len(bit_tuple), "bit_tuple: ", bit_tuple)
     # Cập nhật giá trị bit cho các line tiếp theo và cập nhật bits.data
     next_blocks = line_next[start_block]
 

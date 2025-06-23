@@ -11,16 +11,16 @@ data = {
     'Mem': {'Address': '0', 'WriteData': '0', 'MemWrite': '0', 'MemRead': '0'},
     'ALU': {'ALUControl': '0', 'ReadData1': '0', 'ReadData2': '0'},
     'ADD2': {'Inp0': '0', 'Inp1': '0'},
-    'ADD1': {'Inp0': '0', 'Inp1': '0'},
+    'ADD1': {'Inp0': '0', 'Inp1': '4'},
     'M1': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
     'M2': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
     'M3': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
     'M4': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
-    'Flags': {'Control': '0', 'N': '0', 'Z': '0', 'C': '0', 'V': '0'},
+    'Flags': {'Control': '0', 'NZCVtmp': '0000', 'NZCV': '0000'},
     'SE': {'Inp': '0'},
     'ALUControl': {'ALUop': '0', 'Ins': '0'},
     'Control': {'Inp0': '0'},
-    'XOR': {'Inp0': '0', 'Inp1': '0', 'Inp2': '0'},
+    'OR': {'Inp0': '0', 'Inp1': '0', 'Inp2': '0'},
     'AND1': {'Inp0': '0', 'Inp1': '0'},
     'AND2': {'Inp0': '0', 'Inp1': '0'},
     'SL2': {'Inp0': '0'},
@@ -82,33 +82,38 @@ def assemble_instruction(inst_str):
 def get_bits_for_path(block, ui = None):
     # Trả về giá trị hoặc hàm trả giá trị dạng tuple
     if block in ['M1', 'M2', 'M3', 'M4']:
-        return (tuple(data[block]['Inp0']) if data[block]['Control'] == '0' else tuple(data[block]['Inp1']))
-    if block in ['P1', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8']:
+        if data[block]['Control'] == '0':
+            return (data[block]['Inp0'],)
+        else:
+            return (data[block]['Inp1'],)
+    if block in ['P1', 'P3', 'P5', 'P6', 'P7', 'P8']:
         return (data[block]['Inp0'], data[block]['Inp0'])
+    if block == 'P4':
+        instr = data['P4']['Inp0']
+        opcode = instr[0:11]
+        return (data[block]['Inp0'], opcode)
     if block == 'P2':
-        # Trả về tuple các trường opcode, Rn, Rm, Rd, full instruction từ chuỗi nhị phân 32 bit
-        val = data['P2']['Inp0']
-        return (
-            val[0:11],   # opcode (bits 0-10)
-            val[12:17],  # Rn (bits 12-16)
-            val[16:21],  # Rm (bits 16-20)
-            val[21:26],  # Rd (bits 21-25)
-            val          # full 32-bit instruction
-        )
-    if block in ['ADD1', 'ADD2']:
-        return (lambda: (str(int(data[block]['Inp0']) + int(data[block]['Inp1'])),),)
-    if block == 'XOR':
-        return (lambda: (format(int(data['XOR']['Inp0'],2) ^ int(data['XOR']['Inp1'],2) ^ int(data['XOR']['Inp2'],2), 'b'),),)
+        #  Trả về tuple các trường opcode, Rn, Rm, Rd, full instruction từ chuỗi nhị phân 32 bit
+        instr = data['P2']['Inp0']
+        opcode = instr[0:11]
+        rm     = instr[11:16]
+        rn     = instr[22:27]
+        rd     = instr[27:32]
+        return (opcode, rn, rm, rd, instr)
+        
+    if block in ['ADD2', 'ADD1']:
+        return (format(int(data[block]['Inp0']) + int(data[block]['Inp1']), 'b'),)
+    if block == 'OR':
+        return (format(int(data['OR']['Inp0'],2) | int(data['OR']['Inp1'],2) | int(data['OR']['Inp2'],2), 'b'),)
     if block in ['AND1', 'AND2']:
-        return (lambda: (format(int(data[block]['Inp0'],2) & int(data[block]['Inp1'],2), 'b'),),)
+        return (format(int(data[block]['Inp0'],2) & int(data[block]['Inp1'],2), 'b'),)
     if block == 'Control':
         inp = data['Control']['Inp0']
-        print(inp)
         controls = {
-            '10001011000': '0,0,0,0,0,0,0,1,0,10,1',  # ADD
-            '11001011000': '0,0,0,0,0,0,0,1,0,10,1',  # SUB
-            '10001010000': '0,0,0,0,0,0,0,1,0,10,1',  # AND
-            '10101010000': '0,0,0,0,0,0,0,1,0,10,1',  # ORR
+            '10001011000': '0,0,0,0,0,0,0,0,0,10,1',  # ADD
+            '11001011000': '0,0,0,0,0,0,0,0,0,10,1',  # SUB
+            '10001010000': '0,0,0,0,0,0,0,0,0,10,1',  # AND
+            '10101010000': '0,0,0,0,0,0,0,0,0,10,1',  # ORR
             '11111000010': '0,0,0,0,1,1,0,0,1,00,1',  # LDUR
             '11111000000': '1,0,0,0,0,0,1,0,1,00,0',  # STUR
             '00010100000': '0,1,0,0,0,0,0,0,0,00,0',  # B
@@ -119,20 +124,38 @@ def get_bits_for_path(block, ui = None):
         else:
             raise KeyError(f"Unrecognized opcode: {inp}")
     if block == 'SE':
-        inp = data['SE']['Inp']
-        sign = inp[0]
-        return (sign * (64 - len(inp)) + inp,)
+        instr = data['SE']['Inp']  # chuỗi 32-bit: instr[0] = bit 31, instr[31] = bit 0
+        opcode1 = instr[0:11]       # 11-bit opcode
+        opcode2= instr[0:8]        # 8-bit opcode
+        opcode3 = instr[0:6]        # 6-bit opcode
+        # Xác định vị trí và độ dài immediate theo định dạng D, CBZ, B
+        if opcode1 in ('11111000010', '11111000000'):    # LDUR, STUR (D-type)
+            # immediate bits [20:12] => indices [11:20) trong Python
+            imm = instr[11:20]
+        elif opcode2 == '10110100':  # CBZ (CB-type)
+            imm = instr[8:27]
+        elif opcode3 == '000101':     # B (B-type)
+            imm = instr[6:32]
+        else:
+            # Không phải lệnh có immediate
+            return ('0' * 64,)
+
+        # sign-extend lên 64 bit
+        sign_bit = imm[0]
+        extended = sign_bit * (64 - len(imm)) + imm
+
+        return (extended,)
     if block == 'ALUControl':
         aluop = data['ALUControl']['ALUop']
         ins   = data['ALUControl']['Ins']
         if aluop == '10':
             table = {
-                '10001011000': '0010',
-                '11001011000': '0110',
-                '10001010000': '0000',
-                '10101010000': '0001'
+                '10001011000': '0010', # ADD
+                '11001011000': '0110', # SUB
+                '10001010000': '0000', # AND
+                '10101010000': '0001' # ORR
             }
-            return (table.get(ins, '0010'),)
+            return (table.get(ins, '0000'),)
         if aluop == '00': return ('0010',)
         if aluop == '01': return ('0111',)
         return ('0000',)
@@ -144,55 +167,65 @@ def get_bits_for_path(block, ui = None):
         lines = ui.codeEditor.toPlainText().splitlines()        
         if 0 <= idx < len(lines):
             return assemble_instruction(lines[idx].strip())
-        return ('0'*32,)
+        return ('0'*64,)
     if block == 'Reg':
         def reg_out():
             r1 = int(data['Reg']['ReadRegister1'], 2)
             r2 = int(data['Reg']['ReadRegister2'], 2)
-            print(r1, r2)
             return (format(get_register_value(r1, ui), 'b'), format(get_register_value(r2, ui), 'b'))
         return reg_out()
+    
     if block == 'Mem':
-        def mem_access():
-            addr = int(data['Mem']['Address'], 2)
-            word_row = (addr // 4) * 4
-            if data['Mem']['MemRead'] == '1':
-                item = main.ui.ramTable.item(word_row, 3)
-                val = int(item.text()) if item and item.text().isdigit() else 0
-                return (format(val, '032b'),)
-            if data['Mem']['MemWrite'] == '1':
-                val = int(data['Mem']['WriteData'], 2)
-                w_item = main.ui.ramTable.item(word_row, 3)
-                if w_item:
-                    w_item.setText(str(val))
-                for i in range(4):
-                    byte_val = (val >> (8 * (3 - i))) & 0xFF
-                    b_item = main.ui.ramTable.item(word_row + i, 1)
-                    if b_item:
-                        b_item.setText(str(byte_val))
-                return ('',)
-            return ('0' * 32,)
-        return (mem_access,)
+        addr = int(data['Mem']['Address'], 2)
+        word_row = (addr // 4) * 4
+        if data['Mem']['MemWrite'] == '1':
+            val = int(data['Mem']['WriteData'], 2)
+            w_item = main.ui.ramTable.item(word_row, 3)
+            if w_item:
+                w_item.setText(str(val))
+            for i in range(4):
+                byte_val = (val >> (8 * (3 - i))) & 0xFF
+                b_item = main.ui.ramTable.item(word_row + i, 1)
+                if b_item:
+                    b_item.setText(str(byte_val))
+            return ('',)
+        if data['Mem']['MemRead'] == '1':
+            item = main.ui.ramTable.item(word_row, 3)
+            val = int(item.text()) if item and item.text().isdigit() else 0
+            return (format(val, '032b'),)
+        return ('0' * 32,)
+
     if block == 'ALU':
-        def alu():
-            a = int(data['ALU']['ReadData1'],2)
-            b = int(data['ALU']['ReadData2'],2)
-            op = get_bits_for_path('ALUControl')[0]()
-            if op == '0010': res = a + b
-            elif op == '0110': res = a - b
-            elif op == '0000': res = a & b
-            elif op == '0001': res = a | b
-            elif op == '0111': res = a ^ b
-            else: res = 0
-            return (format(res, 'b'), lambda: 1 if res == 0 else 0)
-        return (alu,)
+        a = int(data['ALU']['ReadData1'],2)
+        b = int(data['ALU']['ReadData2'],2)
+        op = data['ALU']['ALUControl']
+        if op == '0010': res = a + b
+        elif op == '0110': res = a - b
+        elif op == '0000': res = a & b
+        elif op == '0001': res = a | b
+        elif op == '0111': res = a ^ b
+        else: res = 0
+        zeroFlag = 1 if res == 0 else 0
+        nFlag = 1 if res < 0 else 0
+        cFlag = 1 if res > 0xFFFFFFFF else 0
+        vFlag = 1 if (a < 0 and b < 0 and res >= 0) or (a >= 0 and b >= 0 and res < 0) else 0
+        Flag = str(nFlag) + str(zeroFlag) + str(cFlag) + str(vFlag)
+        return (zeroFlag ,format(res, 'b'), Flag)
     if block == 'Flags':
-        def fl():
-            if data['Flags']['Control'] == '1':
-                return ({'N': data['Flags']['N'], 'Z': data['Flags']['Z'], 'C': data['Flags']['C'], 'V': data['Flags']['V']},)
-            return (None,)
-        return (fl,)
-
+        control = data['Flags']['Control']
+        if control == '1':
+            nzcv = data['Flags']['NZCVtmp']
+            data['Flags']['NZCV'] = nzcv
+        
+        zeroFlag = data['Flags']['NZCV'][1]
+        return (zeroFlag,)
+    
+    if block == 'SL2':
+        inp = data['SL2']['Inp0'] 
+        val = int(inp, 2)        
+        shifted_val = val << 2   
+        shifted_bin = format(shifted_val & 0xFFFFFFFF, '032b')  
+        return (shifted_bin,)
+        
+    print(f"get_bits_for_path(): không hỗ trợ block {block}")
     return (None,)
-
-

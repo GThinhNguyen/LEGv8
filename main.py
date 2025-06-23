@@ -135,9 +135,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def simulate_add_step(self):
         # Danh sách các block theo thứ tự animation
         order = [
-            'PC', 'P1', 'IM', 'P2', 'Control', 'ALUControl', 'P3', 'M1', 'Reg', 'P5',
-            'P4', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 'M3', 'AND1', 'AND2', 'XOR',
-            'SL2', 'P8', 'A1', 'A2', 'M4'
+            'PC', 'P1', 'IM', 'P2', 'Control', 'P4', 'ALUControl', 'P3', 'M1', 'Reg', 'P5',
+            'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 'M3', 'Flags', 'AND1', 'AND2', 'OR',
+            'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
         ]
 
         # Khởi tạo biến đếm bước nếu chưa có
