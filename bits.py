@@ -41,21 +41,35 @@ def bin_to_signed(s):
         value -= 2**bits
     return value
 
+def parse_signed(val):
+    if isinstance(val, str) and set(val) <= {'0', '1'} and len(val) == 32:
+        return bin_to_signed(val)
+    try:
+        return int(val)
+    except Exception:
+        return 0
+
 def get_register_value(idx, ui):
     item = ui.registerShow.item(idx, 0)
-    return int(item.text()) if item and item.text().isdigit() else 0
+    try:
+        return int(item.text()) if item and item.text() not in ("", None) else 0
+    except Exception:
+        return 0
 
 def assemble_instruction(inst_str):
     parts = inst_str.replace(',', '').replace('[', '').replace(']', '').split()
     op = parts[0].upper()
 
-    if op in ('ADD', 'SUB', 'AND', 'ORR'):
+    if op in ('ADD', 'SUB', 'AND', 'ORR', 'ADDS', 'SUBS', 'ANDS'):
         rd, rn, rm = [int(p.replace('X','')) for p in parts[1:4]]
         opcodes = {
             'ADD': 0b10001011000,
             'SUB': 0b11001011000,
             'AND': 0b10001010000,
             'ORR': 0b10101010000,
+            'ADDS':0b10101011000,
+            'SUBS':0b11101011000,
+            'ANDS':0b11101010000,
         }
         opcode = opcodes[op]
         shamt = 0
@@ -147,6 +161,9 @@ def get_bits_for_path(block, ui = None):
             '11001011000': '0,0,0,0,0,0,0,0,0,10,1',  # SUB
             '10001010000': '0,0,0,0,0,0,0,0,0,10,1',  # AND
             '10101010000': '0,0,0,0,0,0,0,0,0,10,1',  # ORR
+            '10101011000': '0,0,0,0,0,0,0,1,0,10,1',  #ADDS
+            '11101011000': '0,0,0,0,0,0,0,1,0,10,1',  #SUBS
+            '11101010000': '0,0,0,0,0,0,0,1,0,10,1',  #ANDS
             '11111000010': '0,0,0,0,1,1,0,0,1,00,1',  # LDUR
             '11111000000': '1,0,0,0,0,0,1,0,1,00,0',  # STUR
         }
@@ -198,9 +215,12 @@ def get_bits_for_path(block, ui = None):
         if aluop == '10':
             table = {
                 '10001011000': '0010', # ADD
+                '10101011000': '0010', # ADDS
                 '11001011000': '0110', # SUB
+                '11101011000': '0110', # SUBS
                 '10001010000': '0000', # AND
-                '10101010000': '0001' # ORR
+                '11101010000': '0000', # ANDS
+                '10101010000': '0001', # ORR
             }
             table2 = {
                 '1001000100': '0010',  # ADDI
@@ -235,8 +255,10 @@ def get_bits_for_path(block, ui = None):
         addr = int(data['Mem']['Address'], 10)
         if data['Mem']['MemRead'] == '1':
             item = ui.ramTable.item(addr, 3)
-            val = int(item.text()) if item and item.text().isdigit() else 0
-            print(val)
+            try:
+                val = int(item.text()) if item and item.text() not in ("", None) else 0
+            except Exception:
+                val = 0
             return (val,)
 
         if data['Mem']['MemWrite'] == '1':
@@ -246,8 +268,9 @@ def get_bits_for_path(block, ui = None):
         return ('0',)
 
     if block == 'ALU':
-        a = int(data['ALU']['ReadData1'],10)
-        b = int(data['ALU']['ReadData2'],10)
+        a = parse_signed(data['ALU']['ReadData1'])
+        b = parse_signed(data['ALU']['ReadData2'])
+        print(a,b)
         op = data['ALU']['ALUControl']
         if op == '0010': res = a + b
         elif op == '0110': res = a - b
