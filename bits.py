@@ -82,6 +82,30 @@ def assemble_instruction(inst_str):
         imm = int(parts[1].lstrip('#'))
         opcode = 0b000101
         instr = (opcode << 26) | (imm & 0x3FFFFFF)
+    elif op == 'ADDI':
+        rd = int(parts[1].replace('X', ''))
+        rn = int(parts[2].replace('X', ''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1001000100
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op == 'SUBI':
+        rd = int(parts[1].replace('X', ''))
+        rn = int(parts[2].replace('X', ''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1101000100
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op == 'ANDI':
+        rd = int(parts[1].replace('X', ''))
+        rn = int(parts[2].replace('X', ''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1001001000
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op == 'ORRI':
+        rd = int(parts[1].replace('X', ''))
+        rn = int(parts[2].replace('X', ''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1011001000
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     else:
         raise ValueError(f"assemble_instruction(): lệnh không hỗ trợ: {inst_str}")
 
@@ -116,6 +140,7 @@ def get_bits_for_path(block, ui = None):
     if block in ['AND1', 'AND2']:
         return (format(int(data[block]['Inp0'],2) & int(data[block]['Inp1'],2), 'b'),)
     if block == 'Control':
+        # tra ve mang Reg2Loc UncondBranch FlagBranch ZeroBranch memRead memtoReg MemWrite FlagWrite ALUSrc ALUOp   RegWrite
         inp = data['Control']['Inp0']
         controls = {
             '10001011000': '0,0,0,0,0,0,0,0,0,10,1',  # ADD
@@ -131,12 +156,21 @@ def get_bits_for_path(block, ui = None):
             return ('1', '0', '1', '1', '0', '0', '0', '0', '0', '01', '0')
         if inp[0:6] == '000101':  # B
             return ('0', '1', '0', '0', '0', '0', '0', '0', '0', '00', '0')
+        if inp[0:10] == '1001000100':  # ADDI
+            return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
+        if inp[0:10] == '1101000100':  # SUBI
+            return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
+        if inp[0:10] == '1001001000':  # ANDI
+            return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
+        if inp[0:10] == '1011001000':  # ORRI
+            return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
         raise KeyError(f"Unrecognized opcode: {inp}")
     if block == 'SE':
         instr = data['SE']['Inp']  # chuỗi 32-bit: instr[0] = bit 31, instr[31] = bit 0
         opcode1 = instr[0:11]       # 11-bit opcode
         opcode2= instr[0:8]        # 8-bit opcode
         opcode3 = instr[0:6]        # 6-bit opcode
+        opcode4 = instr[0:10]       # 10-bit opcode
         # Xác định vị trí và độ dài immediate theo định dạng D, CBZ, B
         if opcode1 in ('11111000010', '11111000000'):    # LDUR, STUR (D-type)
             # immediate bits [20:12] => indices [11:20) trong Python
@@ -145,6 +179,8 @@ def get_bits_for_path(block, ui = None):
             imm = instr[8:27]
         elif opcode3 == '000101':     # B (B-type)
             imm = instr[6:32]
+        elif opcode4 in ('1001000100', '1101000100', '1001001000', '1011001000'):  # ADDI, SUBI, ANDI, ORRI (I-type)
+            imm = instr[10:22]
         else:
             # Không phải lệnh có immediate
             return ('0',)
@@ -166,7 +202,16 @@ def get_bits_for_path(block, ui = None):
                 '10001010000': '0000', # AND
                 '10101010000': '0001' # ORR
             }
-            return (table.get(ins, '0000'),)
+            table2 = {
+                '1001000100': '0010',  # ADDI
+                '1101000100': '0110',  # SUBI
+                '1001001000': '0000',  # ANDI
+                '1011001000': '0001'   # ORRI
+            }
+            if ins in table:
+                return (table[ins],)
+            if ins[0:10] in table2:
+                return (table2[ins[0:10]],)
         if aluop == '00': return ('0010',)
         if aluop == '01': return ('0111',)
         return ('0000',)
