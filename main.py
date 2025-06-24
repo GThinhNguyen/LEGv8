@@ -67,6 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # --- Thêm dữ liệu mặc định cho RAM: giá trị từ 1 đến 10 ---
         for row in range(self.ui.ramTable.rowCount()):
             if row < 10:
+                value = str(row + 1)
                 self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(format(row + 1, '08b')))
                 self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
 
