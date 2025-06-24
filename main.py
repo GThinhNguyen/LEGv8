@@ -22,12 +22,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._old_ram_value = ""
         # Tạo figure và canvas
         self.fig, self.ax = simulate.plt.subplots(figsize=(30, 18))
+        # simulate.show_background(self.ax, 'named.jpg')
         simulate.show_polygons(self.ax, simulate.polygons)
         simulate.show_lines(self.ax, simulate.lines)
         simulate.show_points(self.ax, simulate.points)       
-        self.ax.set_aspect('equal')
-        self.ax.autoscale(enable=True)
         self.ax.invert_yaxis()
+        self.ax.set_aspect('equal')
+        # self.ax.autoscale(enable=True)
         self.ax.axis('off')
         self.canvas = FigureCanvas(self.fig)
 
@@ -54,6 +55,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.save_bottom.clicked.connect(lambda: handle_save_file(self.ui))
         self.ui.run_all_bottom.clicked.connect(self.simulate_add)  # Thêm dòng này
         self.ui.run_step_bottom.clicked.connect(self.simulate_add_step)  # Kết nối nút step
+
+       # --- Thêm code mặc định ---
+        default_code = "ADD X1, X2, X3\nADDI X4, X5, #10"
+        self.ui.codeEditor.setPlainText(default_code)
+
+        # --- Thêm dữ liệu mặc định cho thanh ghi ---
+        for i in range(10):  # Chỉ gán giá trị cho 10 thanh ghi đầu
+            self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(str(i + 1)))  # Giá trị từ 1 đến 10
+
+        # --- Thêm dữ liệu mặc định cho RAM: giá trị từ 1 đến 10 ---
+        for row in range(self.ui.ramTable.rowCount()):
+            if row < 10:
+                self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(format(row + 1, '08b')))
+                self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
+
+
 
     def save_old_value(self, row, col):
         item = self.ui.ramTable.item(row, col)

@@ -7,30 +7,39 @@ import bits  # Thêm dòng này ở đầu file
 
 
 polygons = {
-    'PC': np.array([[30, 441], [68, 441], [68, 522], [27, 522]]),
-    'IM': np.array([[110, 467], [216, 467], [216, 629], [108, 629]]),
-    'Reg': np.array([[457, 452], [606, 452], [606, 642], [461, 642]]),
-    'Mem': np.array([[972, 534], [1093, 534], [1093, 710], [968, 710]]),
+    #Rectangle (chỉ lấy trái trên và phải dưới)
+    'PC': np.array([[30, 441], [68, 522]]),
+    'IM': np.array([[110, 467], [216, 629]]),
+    'Reg': np.array([[460, 452], [606, 642]]),
+    'Mem': np.array([[970, 534], [1093, 710]]),
+    'Flags': np.array([[726, 427], [848, 464]]),
+
+    #Rectangle with only top-left and bottom-right corners (as bounding boxes)
+    'M1': np.array([[406, 483], [434, 573]]),
+    'M2': np.array([[680, 550], [708, 640]]),
+    'M3': np.array([[1145, 586], [1173, 676]]),
+    'M4': np.array([[1094, 73], [1122, 163]]),
+
+    #Elipse (chỉ lấy trái trên và phải dưới của bounding box)
+    'SE': np.array([[509, 688], [589, 768]]),  # width = 80, height = 80 (giữ center, làm hình tròn)
+    'SL2': np.array([[715, 168], [781, 234]]), # width = 66, height = 66 (giữ center, làm hình tròn)
+    'ALUControl': np.array([[692, 713], [773, 808]]),
+    'Control': np.array([[397, 220], [478, 439]]),
+
+    #ALUShape
     'ALU': np.array([[838, 511], [838, 584], [740, 623], [740, 568], [759, 549], [737, 527], [737, 473]]),
     'ADD2': np.array([[907, 132], [907, 192], [813, 226], [813, 179], [829, 163], [809, 143], [809, 105]]),
     'ADD1': np.array([[265, 63], [265, 115], [207, 140], [207, 104], [221, 90], [204, 73], [204, 34]]),
-    'M1': np.array([[434, 492], [434, 559], [420, 573], [406, 559], [406, 497], [420, 483]]),
-    'M2': np.array([[708, 559], [708, 623], [691, 640], [675, 626], [675, 564], [691, 548]]),
-    'M3': np.array([[1173, 595], [1173, 656], [1152, 677], [1136, 661], [1136, 596], [1152, 580]]),
-    'M4': np.array([[1122, 82], [1122, 167], [1106, 183], [1092, 169], [1092, 85], [1104, 73]]),
-    'Flags': np.array([[729, 427], [848, 427], [848, 464], [726, 464]]),
-    'SE': np.array([[539, 688], [562, 688], [589, 737], [562, 787], [537, 787], [509, 739]]),
-    'ALUControl': np.array([[721, 713], [750, 713], [773, 759], [748, 808], [719, 808], [692, 760]]),
-    'Control': np.array([[424, 220], [455, 220], [478, 295], [478, 372], [453, 437], [426, 439], [397, 370], [397, 293]]),
+
+    #Others
     'OR': np.array([[1064, 241], [1083, 255], [1064, 274], [1041, 274], [1049, 259], [1041, 236]]),
     'AND1': np.array([[874, 419], [907, 419], [918, 437], [901, 452], [873, 452]]),
     'AND2': np.array([[966, 421], [966, 460], [991, 460], [1007, 441], [986, 416]]),
-    'SL2': np.array([[737, 168], [765, 168], [765, 168], [781, 201], [781, 201], [760, 235], [760, 235], [733, 237], [733, 237], [715, 203], [715, 203]])
 }
 
 points = {
     'P1': (83, 482),
-    'P2': (240, 474),
+    'P2': (240, 549),
     'P3': (352, 587),
     'P4': (458, 738),
     'P5': (625, 566),
@@ -133,8 +142,6 @@ lines = {
     'L9b': np.array([[905, 162], [1085, 162]])
 }
 
-# Định nghĩa các đường nối tiếp dựa trên comment trong dict lines
-# Sửa lại: dùng dict Python hợp lệ, key là tên line hoặc block, value là list tên line/block tiếp theo
 
 line_next = {
     # Control outputs
@@ -226,26 +233,144 @@ connection_map = {
 }
 
 
-def show_polygons(ax, polygons_dict):
-    for poly in polygons_dict.values():
+
+def show_name(ax, polygons_dict):
+    """
+    Hiển thị tên block và các nhãn phụ cho sơ đồ.
+    """
+    rects = {'PC', 'IM', 'Reg', 'Mem'}
+    rounded_rects = {'M1', 'M2', 'M3', 'M4'}
+    ellipses = {'SE', 'ALUControl', 'Control', 'SL2'}
+
+    for name, poly in polygons_dict.items():
         poly = np.array(poly)
         if poly.ndim != 2 or poly.shape[0] < 2:
-            continue  # Skip empty or invalid polygons
-        ax.plot(*poly.T, lw=2, color='red')
-        if not np.allclose(poly[0], poly[-1]):
-            ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2, color='red')
+            continue
+        if poly.shape[0] == 2:
+            x0, y0 = poly[0]
+            x1, y1 = poly[1]
+            left, right = min(x0, x1), max(x0, x1)
+            bottom, top = min(y0, y1), max(y0, y1)
+            cx, cy = (left + right) / 2, (bottom + top) / 2
+            if name in rects:
+                ax.text(right - 4, top - 25, r"$\bf{" + name + "}$", color='black', fontsize=12, ha='right', va='top', zorder=200)
+            elif name in ellipses:
+                ax.text(cx, cy, r"$\bf{" + name + "}$", color='black', fontsize=12, ha='center', va='center', zorder=200)
+            elif name.startswith('M') and name in rounded_rects:
+                ax.text(cx, bottom + 30, '0', color='black', fontsize=12, ha='center', va='bottom', zorder=200)
+                ax.text(cx, top - 30, '1', color='black', fontsize=12, ha='center', va='top', zorder=200)
+        elif name == 'ALU':
+            # Tính bounding box cho ALU để đặt nhãn ở giữa
+            poly_alu = np.array(polygons_dict['ALU'])
+            min_x, max_x = np.min(poly_alu[:, 0]), np.max(poly_alu[:, 0])
+            min_y, max_y = np.min(poly_alu[:, 1]), np.max(poly_alu[:, 1])
+            cx_alu = (min_x + max_x) / 2
+            cy_alu = (min_y + max_y) / 2
+            ax.text(cx_alu, cy_alu, r"$\bf{ALU}$", color='black', fontsize=12, ha='center', va='center', zorder=200)
+
+    # Nhãn phụ cho IM
+    ax.text(215, 548, "Instruction\n[31-0]", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+    ax.text(112, 470, "Read\naddress", color='black', fontsize=9, ha='left', va='top', zorder=200, linespacing=0.8)
+
+    # Nhãn cho Reg
+    reg_left, reg_right = 460, 606
+    reg_labels = [("Read\nregister 1", 474), ("Read\nregister 2", 530), ("Write\nregister", 583), ("Write\ndata", 624)]
+    for label, y in reg_labels:
+        ax.text(reg_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=200, linespacing=0.8)
+    reg_labels_right = [("Read\ndata 1", 503), ("Read\ndata 2", 566)]
+    for label, y in reg_labels_right:
+        ax.text(reg_right - 3, y, label, color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+
+    # Nhãn cho Mem
+    mem_left, mem_right = 970, 1093
+    mem_labels_left = [("Address", 568), ("Write\ndata", 685)]
+    for label, y in mem_labels_left:
+        ax.text(mem_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=200, linespacing=0.8)
+    ax.text(mem_right - 3, 598, "Read\ndata", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+
+    # Nhãn cho ALU (Zero)
+    alu_zero_x, alu_zero_y = polygons_dict.get('ALU', np.array([[0,0]]))[0]
+    ax.text(alu_zero_x - 3, 530, "Zero", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+
+    # Hiển thị tên các cổng đầu ra của Control (bên phải, căn trái)
+    control_right = polygons_dict['Control'][1][0]
+    control_ports = [
+        "Reg2Loc", "Uncondbranch", "Branch", "ZeroBranch", "MemRead",
+        "MemtoReg", "MemWrite", "FlagWrite", "ALUSrc", "ALUOp", "RegWrite"
+    ]
+    control_lines = [lines[n] for n in line_next.get('Control', []) if n in lines]
+    if len(control_lines) == len(control_ports):
+        for port, line in zip(control_ports, control_lines):
+            ax.text(control_right + 10, line[0][1] - 7, port, color='black', fontsize=9,
+                    ha='left', va='center', zorder=200)
+
+def show_background(ax, path):
+    import matplotlib.image as mpimg
+    img = mpimg.imread(path)
+    ax.imshow(img, extent=[0, img.shape[1], img.shape[0], 0], zorder=0)
+
+def show_polygons(ax, polygons_dict):
+    import matplotlib.patches as patches
+    from matplotlib.patches import FancyBboxPatch
+
+    rounded_rects = {'M1', 'M2', 'M3', 'M4'}
+    ellipses = {'SE', 'ALUControl', 'Control', 'SL2'}
+
+    for name, poly in polygons_dict.items():
+        poly = np.array(poly)
+        if poly.ndim != 2 or poly.shape[0] < 2:
+            continue
+        if poly.shape[0] == 2:
+            x0, y0 = poly[0]
+            x1, y1 = poly[1]
+            left, right = min(x0, x1), max(x0, x1)
+            bottom, top = min(y0, y1), max(y0, y1)
+            width, height = right - left, top - bottom
+            if name in rounded_rects:
+                ax.add_patch(FancyBboxPatch((left, bottom), width, height,
+                                            boxstyle="round,pad=0.02,rounding_size=15",
+                                            linewidth=2, edgecolor='red', facecolor='none', zorder=5))
+            elif name in ellipses:
+                ax.add_patch(patches.Ellipse(((left + right) / 2, (bottom + top) / 2),
+                                             width, height, linewidth=2, edgecolor='red',
+                                             facecolor='none', zorder=5))
+            else:
+                ax.add_patch(patches.Rectangle((left, bottom), width, height,
+                                               linewidth=2, edgecolor='red', facecolor='none', zorder=5))
+        else:
+            ax.plot(*poly.T, lw=2, color='red', zorder=5)
+            if not np.allclose(poly[0], poly[-1]):
+                ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2, color='red', zorder=5)
+
+    # Vẽ 4 ô nhỏ và nhãn ZNCV cho Flags
+    if 'Flags' in polygons_dict:
+        poly = np.array(polygons_dict['Flags'])
+        x0, y0 = poly[0]
+        x1, y1 = poly[1]
+        left, right = min(x0, x1), max(x0, x1)
+        bottom, top = min(y0, y1), max(y0, y1)
+        width, height = right - left, top - bottom
+        box_width = width / 4
+        labels = ['Z', 'N', 'C', 'V']
+        for i, label in enumerate(labels):
+            ax.add_patch(patches.Rectangle((left + i * box_width, bottom), box_width, height,
+                                           linewidth=2, edgecolor='red', facecolor='none', zorder=6))
+            cx = left + (i + 0.5) * box_width
+            cy = bottom + height / 2
+            ax.text(cx, cy, label, color='black', fontsize=12, ha='center', va='center', zorder=200)
+
+    show_name(ax, polygons_dict)
 
 def show_lines(ax, lines_dict):
     for line in lines_dict.values():
         line = np.array(line)
         if line.ndim != 2 or line.shape[0] < 2:
             continue
-        ax.plot(*line.T, lw=2, color='black')
+        ax.plot(*line.T, lw=1, color='black')  # Độ dày line mỏng hơn (lw=1)
 
 def show_points(ax, point_coords):
     for name, (x, y) in point_coords.items():
-        ax.plot(x, y, 'o', color='red', markersize=8, zorder=20)
-
+        ax.plot(x, y, 'o', color='red', markersize=3, zorder=20)
 
 
 
