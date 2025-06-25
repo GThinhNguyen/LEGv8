@@ -297,7 +297,6 @@ def get_bits_for_path(block, ui = None):
     if block == 'ALU':
         a = parse_signed(data['ALU']['ReadData1'])
         b = parse_signed(data['ALU']['ReadData2'])
-        print(a,b)
         op = data['ALU']['ALUControl']
         if op == '0010': res = a + b
         elif op == '0110': res = a - b
@@ -314,24 +313,22 @@ def get_bits_for_path(block, ui = None):
     if block == 'Flags':
         control = data['Flags']['Control']
         if control == '1':
-            nzcv = data['Flags']['NZCVtmp']
-            data['Flags']['NZCV'] = nzcv
+            data['Flags']['NZCV'] = data['Flags']['NZCVtmp']
         
-        nzcv = data['Flags']['NZCV']  # string 4 ký tự, ví dụ "1010"
-        n, z, c, v = nzcv[0], nzcv[1], nzcv[2], nzcv[3]
+            nzcv = data['Flags']['NZCV']  # string 4 ký tự, ví dụ "1010"
+            n, z, c, v = nzcv[0], nzcv[1], nzcv[2], nzcv[3]
 
-        # Nếu muốn đổi màu nền để nổi bật khi flag = 1:
-        def highlight_flag(label, bit):
-            if bit == '1':
-                label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
-            else:
-                # reset về lightgray như mặc định
-                label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
+            def highlight_flag(label, bit):
+                if bit == '1':
+                    label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
+                else:
+                    # reset về lightgray như mặc định
+                    label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
 
-        highlight_flag(ui.n_flag, n)
-        highlight_flag(ui.z_flag, z)
-        highlight_flag(ui.c_flag, c)
-        highlight_flag(ui.v_flag, v)
+            highlight_flag(ui.n_flag, n)
+            highlight_flag(ui.z_flag, z)
+            highlight_flag(ui.c_flag, c)
+            highlight_flag(ui.v_flag, v)
         zeroFlag = data['Flags']['NZCV'][1]
         return (zeroFlag,)
     
@@ -343,3 +340,35 @@ def get_bits_for_path(block, ui = None):
         
     print(f"get_bits_for_path(): không hỗ trợ block {block}")
     return (None,)
+
+def reset_data():
+    global data
+    data = {
+        'PC': {'Inp0': '0'},
+        'IM': {'ReadAddress': '0'},
+        'Reg': {'RegWrite': '0', 'ReadRegister1': '0', 'ReadRegister2': '0', 'WriteRegister': '0', 'WriteData': '0'},
+        'Mem': {'Address': '0', 'WriteData': '0', 'MemWrite': '0', 'MemRead': '0'},
+        'ALU': {'ALUControl': '0', 'ReadData1': '0', 'ReadData2': '0'},
+        'ADD2': {'Inp0': '0', 'Inp1': '0'},
+        'ADD1': {'Inp0': '0', 'Inp1': '4'},
+        'M1': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
+        'M2': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
+        'M3': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
+        'M4': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
+        'Flags': {'Control': '0', 'NZCVtmp': '0000', 'NZCV': '0000'},
+        'SE': {'Inp': '0'},
+        'ALUControl': {'ALUop': '0', 'Ins': '0'},
+        'Control': {'Inp0': '0'},
+        'OR': {'Inp0': '0', 'Inp1': '0', 'Inp2': '0'},
+        'AND1': {'Inp0': '0', 'Inp1': '0'},
+        'AND2': {'Inp0': '0', 'Inp1': '0'},
+        'SL2': {'Inp0': '0'},
+        'P1': {'Inp0': '0'},
+        'P2': {'Inp0': '0'},
+        'P3': {'Inp0': '0'},
+        'P4': {'Inp0': '0'},
+        'P5': {'Inp0': '0'},
+        'P6': {'Inp0': '0'},
+        'P7': {'Inp0': '0'},
+        'P8': {'Inp0': '0'}
+    }

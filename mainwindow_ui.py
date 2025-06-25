@@ -186,9 +186,9 @@ class Ui_MainWindow(object):
         self.run_step_bottom.setObjectName("run_step_bottom")
         self.setting_layout.addWidget(self.run_step_bottom)
         
-        self.stop_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.stop_bottom.setObjectName("stop_bottom")
-        self.setting_layout.addWidget(self.stop_bottom)
+        self.clean_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.clean_bottom.setObjectName("clean_bottom")
+        self.setting_layout.addWidget(self.clean_bottom)
         
         self.help_bottom = QtWidgets.QPushButton(self.setting_frame)
         self.help_bottom.setObjectName("help_bottom")
@@ -353,7 +353,7 @@ class Ui_MainWindow(object):
         self.save_bottom.setText(_translate("MainWindow", "Save"))
         self.run_all_bottom.setText(_translate("MainWindow", "Run all"))
         self.run_step_bottom.setText(_translate("MainWindow", "Run by step"))
-        self.stop_bottom.setText(_translate("MainWindow", "Stop/Continue"))
+        self.clean_bottom.setText(_translate("MainWindow", "Clean"))
         self.help_bottom.setText(_translate("MainWindow", "Instructions"))
         self.registerShow.verticalHeaderItem(0).setText(_translate("MainWindow", "X0"))
         self.registerShow.verticalHeaderItem(1).setText(_translate("MainWindow", "X1"))

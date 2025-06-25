@@ -396,8 +396,6 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
     bit_tuple = bits.get_bits_for_path(start_block, ui)  # tuple chứa các chuỗi bit cho từng path
 
-    #in số lượng bit_tuple
-    print(len(bit_tuple), "bit_tuple: ", bit_tuple)
     # Cập nhật giá trị bit cho các line tiếp theo và cập nhật bits.data
     next_blocks = line_next[start_block]
 
@@ -507,6 +505,30 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
     ani = animation.FuncAnimation(ax.figure, update, interval=30, blit=False, cache_frame_data=False)
     return ani
 
+def logic_step_from_block(start_block, lines, line_next, ui):
+    """
+    Xử lý logic truyền dữ liệu giữa các block, KHÔNG tạo animation.
+    """
+    import bits
+    bit_tuple = bits.get_bits_for_path(start_block, ui)
+    next_blocks = line_next.get(start_block, [])
+    for i, next_line in enumerate(next_blocks):
+        bit_str = bit_tuple[i] if isinstance(bit_tuple, (tuple, list)) and i < len(bit_tuple) else str(bit_tuple[-1]) if isinstance(bit_tuple, (tuple, list)) else str(bit_tuple)
+        if next_line in connection_map:
+            for conn in connection_map[next_line]:
+                conn['value'] = str(bit_str)
+                bits.data[conn['to']][conn['port']] = conn['value']
+
+def clear_animated_squares(ax):
+    """Xóa tất cả các khối vuông động (animation square) trên ax."""
+    if hasattr(ax, 'existing_squares'):
+        for sq in list(ax.existing_squares.values()):
+            try:
+                sq['patch'].remove()
+                sq['text'].remove()
+            except Exception:
+                pass
+        ax.existing_squares.clear()
 # --- Dữ liệu polygons và lines giữ nguyên như bạn đã có ở trên ---
 
 # Vẽ tất cả trên cùng một hình

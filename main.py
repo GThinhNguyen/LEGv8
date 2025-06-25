@@ -1,5 +1,6 @@
 import sys
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QTextCursor, QTextCharFormat, QColor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import simulate        # module của bạn chứa show_polygons_and_lines, animate_squares_along_paths
 from mainwindow_ui import Ui_MainWindow  # file pyuic5 sinh ra
@@ -16,7 +17,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Thiết lập UI
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
+        self.current_line_idx = 0
+        self.current_step = 0
         self.ui.ramTable.itemChanged.connect(self.handle_ram_item_changed)
         self.ui.ramTable.cellClicked.connect(self.save_old_value)
         self._old_ram_value = ""
@@ -53,8 +55,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.open_bottom.clicked.connect(lambda: handle_open_file(self.ui))
         self.ui.close_bottom.clicked.connect(lambda: handle_close_file(self.ui))
         self.ui.save_bottom.clicked.connect(lambda: handle_save_file(self.ui))
-        self.ui.run_all_bottom.clicked.connect(self.simulate_add)  # Thêm dòng này
-        self.ui.run_step_bottom.clicked.connect(self.simulate_add_step)  # Kết nối nút step
+        self.ui.run_all_bottom.clicked.connect(self.simulate_all) 
+        self.ui.run_step_bottom.clicked.connect(self.simulate_step) 
+        self.ui.clean_bottom.clicked.connect(self.handle_clean)
 
        # --- Thêm code mặc định ---
         default_code = "ADD X1, X2, X3\nADDI X4, X5, #10"
@@ -71,7 +74,29 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(format(row + 1, '08b')))
                 self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
 
+    def highlight_line(self, line_number):
+        """Tô vàng dòng line_number (0-based) trong codeEditor."""
+        editor = self.ui.codeEditor
+        # Xóa highlight cũ
+        editor.setExtraSelections([])
 
+        # Chuẩn bị cursor đến dòng cần highlight
+        cursor = editor.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+        cursor.movePosition(QTextCursor.Down, QTextCursor.MoveAnchor, line_number)
+        cursor.select(QTextCursor.LineUnderCursor)
+
+        # Tạo format (nền vàng)
+        fmt = QTextCharFormat()
+        fmt.setBackground(QColor('#fff176'))  # màu vàng nhạt
+
+        # Đóng gói thành ExtraSelection
+        sel = QtWidgets.QTextEdit.ExtraSelection()
+        sel.cursor = cursor
+        sel.format = fmt
+
+        # Áp dụng lên editor
+        editor.setExtraSelections([sel])
 
     def save_old_value(self, row, col):
         item = self.ui.ramTable.item(row, col)
@@ -125,62 +150,68 @@ class MainWindow(QtWidgets.QMainWindow):
                 if byte_item:
                     byte_item.setText(byte_str)
 
-    def simulate_add(self):
-        # Lấy lệnh từ code frame
-        code = self.ui.textEdit.toPlainText().strip()
-        if not code:
-            return
+    def simulate_all(self):
+        order = [
+            'PC', 'P1', 'IM', 'P2', 'Control', 'P4', 'ALUControl', 'P3', 'M1', 'Reg', 'P5',
+            'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 'M3', 'Flags', 'AND1', 'AND2', 'OR',
+            'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
+        ]
+        total_lines = self.ui.codeEditor.document().blockCount()
+        if not hasattr(self, 'current_step'):
+            self.current_step = 0
+        if not hasattr(self, 'current_line_idx'):
+            self.current_line_idx = 0
 
-        # Giả sử chỉ xử lý dòng đầu tiên, dạng: ADD Xd, Xn, Xm
-        line = code.splitlines()[0]
-        parts = line.replace(',', '').split()
-        if len(parts) != 4 or parts[0].upper() != "ADD":
-            QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ hỗ trợ lệnh: ADD Xd, Xn, Xm")
-            return
+        while self.current_line_idx < total_lines:
+            while self.current_step < len(order):
+                block = order[self.current_step]
+                # Gọi hàm chỉ xử lý logic, không tạo animation
+                simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
+                # Nếu có logic cập nhật thanh ghi khi M3
+                if block == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
+                    rd= bits.data['Reg']['WriteRegister']
+                    rd_value = bits.data['Reg']['WriteData']
+                    self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+                self.current_step += 1
+            simulate.clear_animated_squares(self.ax)
+            self.current_step = 0
+            self.current_line_idx += 1
+            if self.current_line_idx < total_lines:
+                self.highlight_line(self.current_line_idx)
 
-        _, dst, src1, src2 = parts
-        # Lấy chỉ số thanh ghi
-        dst_idx = int(dst[1:])
-        src1_idx = int(src1[1:])
-        src2_idx = int(src2[1:])
-
-        # Lấy giá trị hiện tại của các thanh ghi (nếu chưa có thì là 0)
-        def get_reg(idx):
-            item = self.ui.registerShow.item(idx, 0)
-            return int(item.text()) if item and item.text().isdigit() else 0
-
-        val1 = get_reg(src1_idx)
-        val2 = get_reg(src2_idx)
-        result = val1 + val2
-
-        # Cập nhật kết quả lên thanh ghi đích
-        self.ui.registerShow.setItem(dst_idx, 0, QtWidgets.QTableWidgetItem(str(result)))
-
-        # Sau khi xử lý xong, gọi animation (ví dụ animate từ 'Control')
-        if self.ani:
-            self.ani.event_source.stop()
-        self.ani = simulate.animate_square_from_block(
-            self.ax, 'Control', simulate.lines, simulate.line_next, square_size=18, interval=20, speed=2
-        )
+        QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+        self.current_line_idx = 0
+        self.highlight_line(self.current_line_idx)
+        bits.reset_data()
         self.canvas.draw_idle()
-
-    def simulate_add_step(self):
+        
+    def simulate_step(self):
         # Danh sách các block theo thứ tự animation
-        current_line_idx = self.ui.codeEditor.textCursor().blockNumber() if self.ui.codeEditor.textCursor() else 0
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control', 'P4', 'ALUControl', 'P3', 'M1', 'Reg', 'P5',
             'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 'M3', 'Flags', 'AND1', 'AND2', 'OR',
             'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
         ]
 
+        total_lines = self.ui.codeEditor.document().blockCount()
         # Khởi tạo biến đếm bước nếu chưa có
         if not hasattr(self, 'current_step'):
             self.current_step = 0
         # Nếu đã hết order thì quay lại đầu
         if self.current_step >= len(order):
+            simulate.clear_animated_squares(self.ax) #chạy hết 1 vòng thì xóa các khối vuông
             self.current_step = 0
-            current_line_idx +=1
+            self.current_line_idx +=1
 
+        if self.current_line_idx >= total_lines:
+            QtWidgets.QMessageBox.information(self, "Kết thúc",
+                "Đã chạy hết chương trình!")
+            # reset về đầu
+            self.current_line_idx = 0
+            self.highlight_line(self.current_line_idx)
+            bits.reset_data()
+            return
+        self.highlight_line(self.current_line_idx)
         block = order[self.current_step]
         
         # Animate block/line hiện tại
@@ -198,27 +229,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.draw_idle()
         self.current_step += 1
 
-    def get_rn_rm_from_code(self):
-        """
-        Lấy chỉ số Rn, Rm từ dòng đầu tiên của code frame (giả sử dạng: ADD Xd, Xn, Xm)
-        Trả về (rn_idx, rm_idx)
-        """
-        code = self.ui.textEdit.toPlainText().strip()
-        if not code:
-            return None, None
-        line = code.splitlines()[0]
-        parts = line.replace(',', '').split()
-        if len(parts) != 4 or parts[0].upper() != "ADD":
-            return None, None
-        # _, dst, rn, rm
-        _, _, rn, rm = parts
-        try:
-            rn_idx = int(rn[1:])
-            rm_idx = int(rm[1:])
-            return rn_idx, rm_idx
-        except Exception:
-            return None, None
+    def handle_clean(self):
+        # Đưa giá trị thanh ghi về mặc định (0)
+        for i in range(self.ui.registerShow.rowCount()):
+            self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem("0"))
 
+        # Đưa giá trị RAM về mặc định (ByteValue = 00000000, WordValue = 0)
+        for row in range(self.ui.ramTable.rowCount()):
+            self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem("00000000"))
+            self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem("0"))
+
+        # Đặt lại bits.data về mặc định
+        bits.reset_data()
+
+        # Đặt lại current_line_idx, current_step về 0
+        self.current_line_idx = 0
+        self.current_step = 0
+
+        # Xóa highlight dòng code nếu có
+        self.ui.codeEditor.setExtraSelections([])
+
+        # Đặt lại cờ NZCV về mặc định (nếu có)
+        if hasattr(self.ui, "n_flag"):
+            self.ui.n_flag.setStyleSheet("background-color: lightgray; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
+        if hasattr(self.ui, "z_flag"):
+            self.ui.z_flag.setStyleSheet("background-color: lightgray; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
+        if hasattr(self.ui, "c_flag"):
+            self.ui.c_flag.setStyleSheet("background-color: lightgray; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
+        if hasattr(self.ui, "v_flag"):
+            self.ui.v_flag.setStyleSheet("background-color: lightgray; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
+        simulate.clear_animated_squares(self.ax)
+        self.canvas.draw_idle()
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = MainWindow()
