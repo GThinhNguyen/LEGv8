@@ -154,15 +154,17 @@ def get_bits_for_path(block, ui = None):
         return (data[block]['Inp0'], data[block]['Inp0'])
     if block == 'P4':
         instr = data['P4']['Inp0']
-        opcode = instr[0:11]
-        return (data[block]['Inp0'], opcode)
+        instr_binary = assemble_instruction(instr)
+        opcode = instr_binary[0][0:11]
+        return (instr, opcode)
     if block == 'P2':
         #  Trả về tuple các trường opcode, Rn, Rm, Rd, full instruction từ chuỗi nhị phân 32 bit
         instr = data['P2']['Inp0']
-        opcode = instr[0:11]
-        rm     = instr[11:16]
-        rn     = instr[22:27]
-        rd     = instr[27:32]
+        instr_binary = assemble_instruction(instr)
+        opcode = instr_binary[0][0:11]
+        rm     = instr_binary[0][11:16]
+        rn     = instr_binary[0][22:27]
+        rd     = instr_binary[0][27:32]
         return (opcode, rn, rm, rd, instr)
         
     if block in ['ADD2', 'ADD1']:
@@ -207,21 +209,22 @@ def get_bits_for_path(block, ui = None):
             return ('0', '0', '0', '0', '0', '0', '0', '1', '1', '10', '1')
         raise KeyError(f"Unrecognized opcode: {inp}")
     if block == 'SE':
-        instr = data['SE']['Inp']  # chuỗi 32-bit: instr[0] = bit 31, instr[31] = bit 0
-        opcode1 = instr[0:11]       # 11-bit opcode
-        opcode2= instr[0:8]        # 8-bit opcode
-        opcode3 = instr[0:6]        # 6-bit opcode
-        opcode4 = instr[0:10]       # 10-bit opcode
+        instr = data['SE']['Inp']  
+        instr_binary = assemble_instruction(instr)
+        opcode1 = instr_binary[0][0:11]     
+        opcode2= instr_binary[0][0:8]   
+        opcode3 = instr_binary[0][0:6]     
+        opcode4 = instr_binary[0][0:10]  
         # Xác định vị trí và độ dài immediate theo định dạng D, CBZ, B
         if opcode1 in ('11111000010', '11111000000'):    # LDUR, STUR (D-type)
             # immediate bits [20:12] => indices [11:20) trong Python
-            imm = instr[11:20]
+            imm = instr_binary[0][11:20]
         elif opcode2 == '10110100':  # CBZ (CB-type)
-            imm = instr[8:27]
+            imm = instr_binary[0][8:27]
         elif opcode3 == '000101':     # B (B-type)
-            imm = instr[6:32]
+            imm = instr_binary[0][6:32]
         elif opcode4 in ('1001000100', '1101000100', '1001001000', '1011001000', '1011000100', '1111000100', '1111001000'):  # ADDI, SUBI, ANDI, ORRI, ADDIS, SUBIS, ANDIS (I-type)
-            imm = instr[10:22]
+            imm = instr_binary[0][10:22]
         else:
             # Không phải lệnh có immediate
             return ('0',)
@@ -269,8 +272,8 @@ def get_bits_for_path(block, ui = None):
         idx = addr // 4
         lines = ui.codeEditor.toPlainText().splitlines()        
         if 0 <= idx < len(lines):
-            return assemble_instruction(lines[idx].strip())
-        return ('0'*64,)
+            return (lines[idx].strip(),)
+        return ("Khong co lenh",)
     if block == 'Reg':
         def reg_out():
             r1 = int(data['Reg']['ReadRegister1'], 2)
