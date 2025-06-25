@@ -33,7 +33,17 @@ data = {
     'P7': {'Inp0': '0'},
     'P8': {'Inp0': '0'}
 }
-
+def signed_to_bin(value: int, n: int) -> str:
+    min_val = - (1 << (n-1))
+    max_val =   (1 << (n-1)) - 1
+    if not (min_val <= value <= max_val):
+        raise ValueError(f"{value} không thể biểu diễn trong {n} bit (phạm vi [{min_val}, {max_val}])")
+    # Với số âm, lấy two's complement
+    if value < 0:
+        value = (1 << n) + value
+    # Chuyển sang nhị phân, điền 0 đầu cho đủ n bit
+    s = format(value, 'b').zfill(n)
+    return s
 def bin_to_signed(s):
     value = int(s, 2)
     bits = len(s)
@@ -60,13 +70,14 @@ def assemble_instruction(inst_str):
     parts = inst_str.replace(',', '').replace('[', '').replace(']', '').split()
     op = parts[0].upper()
 
-    if op in ('ADD', 'SUB', 'AND', 'ORR', 'ADDS', 'SUBS', 'ANDS'):
+    if op in ('ADD', 'SUB', 'AND', 'ORR', 'ADDS', 'SUBS', 'ANDS', 'EOR'):
         rd, rn, rm = [int(p.replace('X','')) for p in parts[1:4]]
         opcodes = {
             'ADD': 0b10001011000,
             'SUB': 0b11001011000,
             'AND': 0b10001010000,
             'ORR': 0b10101010000,
+            'EOR': 0b11001010000,
             'ADDS':0b10101011000,
             'SUBS':0b11101011000,
             'ANDS':0b11101010000,
@@ -119,6 +130,12 @@ def assemble_instruction(inst_str):
         rn = int(parts[2].replace('X', ''))
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1011001000
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op == 'EORI':
+        rd = int(parts[1].replace('X', ''))
+        rn = int(parts[2].replace('X', ''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1101001000
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'ADDIS':
         rd = int(parts[1].replace('X',''))
@@ -181,9 +198,10 @@ def get_bits_for_path(block, ui = None):
             '11001011000': '0,0,0,0,0,0,0,0,0,10,1',  # SUB
             '10001010000': '0,0,0,0,0,0,0,0,0,10,1',  # AND
             '10101010000': '0,0,0,0,0,0,0,0,0,10,1',  # ORR
-            '10101011000': '0,0,0,0,0,0,0,1,0,10,1',  #ADDS
-            '11101011000': '0,0,0,0,0,0,0,1,0,10,1',  #SUBS
-            '11101010000': '0,0,0,0,0,0,0,1,0,10,1',  #ANDS
+            '11001010000': '0,0,0,0,0,0,0,0,0,10,1',  # EOR
+            '10101011000': '0,0,0,0,0,0,0,1,0,10,1',  # ADDS
+            '11101011000': '0,0,0,0,0,0,0,1,0,10,1',  # SUBS
+            '11101010000': '0,0,0,0,0,0,0,1,0,10,1',  # ANDS
             '11111000010': '0,0,0,0,1,1,0,0,1,00,1',  # LDUR
             '11111000000': '1,0,0,0,0,0,1,0,1,00,0',  # STUR
         }
@@ -200,6 +218,8 @@ def get_bits_for_path(block, ui = None):
         if inp[0:10] == '1001001000':  # ANDI
             return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
         if inp[0:10] == '1011001000':  # ORRI
+            return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
+        if inp[0:10] == '1101001000':  # EORI
             return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
         if inp[0:10] == '1011000100':  # ADDIS
             return ('0', '0', '0', '0', '0', '0', '0', '1', '1', '10', '1')
@@ -223,7 +243,7 @@ def get_bits_for_path(block, ui = None):
             imm = instr_binary[0][8:27]
         elif opcode3 == '000101':     # B (B-type)
             imm = instr_binary[0][6:32]
-        elif opcode4 in ('1001000100', '1101000100', '1001001000', '1011001000', '1011000100', '1111000100', '1111001000'):  # ADDI, SUBI, ANDI, ORRI, ADDIS, SUBIS, ANDIS (I-type)
+        elif opcode4 in ('1001000100', '1101000100', '1001001000', '1011001000', '1011000100', '1111000100', '1111001000', '1101001000'):  # ADDI, SUBI, ANDI, ORRI, ADDIS, SUBIS, ANDIS, EORI (I-type)
             imm = instr_binary[0][10:22]
         else:
             # Không phải lệnh có immediate
@@ -248,6 +268,7 @@ def get_bits_for_path(block, ui = None):
                 '10001010000': '0000', # AND
                 '11101010000': '0000', # ANDS
                 '10101010000': '0001', # ORR
+                '11001010000': '0011', # EOR
             }
             table2 = {
                 '1001000100': '0010',  # ADDI
@@ -256,7 +277,8 @@ def get_bits_for_path(block, ui = None):
                 '1111000100': '0110',  # SUBIS
                 '1001001000': '0000',  # ANDI
                 '1111001000': '0000',  # ANDIS
-                '1011001000': '0001'   # ORRI
+                '1011001000': '0001',  # ORRI
+                '1101001000': '0011',  # EORI
             }
             if ins in table:
                 return (table[ins],)
@@ -301,18 +323,39 @@ def get_bits_for_path(block, ui = None):
         a = parse_signed(data['ALU']['ReadData1'])
         b = parse_signed(data['ALU']['ReadData2'])
         op = data['ALU']['ALUControl']
-        if op == '0010': res = a + b
-        elif op == '0110': res = a - b
-        elif op == '0000': res = a & b
-        elif op == '0001': res = a | b
-        elif op == '0111': res = a ^ b
-        else: res = 0
+
+        def to_unsigned32(val):
+            return val & 0xFFFFFFFF
+
+        if op in ('0000', '0001', '0011'):  # &, |, ^
+            a32 = to_unsigned32(a)
+            b32 = to_unsigned32(b)
+            if op == '0000':
+                res32 = a32 & b32
+            elif op == '0001':
+                res32 = a32 | b32
+            elif op == '0011':
+                res32 = a32 ^ b32
+            # Chuyển về signed 32 bit nếu cần
+            if res32 & 0x80000000:
+                res = res32 - 0x100000000
+            else:
+                res = res32
+        elif op == '0010':
+            res = a + b
+        elif op == '0110':
+            res = a - b
+        elif op == '0111':
+            res = b
+        else:
+            res = 0
+
         zeroFlag = 1 if res == 0 else 0
         nFlag = 1 if res < 0 else 0
         cFlag = 1 if res > 0xFFFFFFFF else 0
         vFlag = 1 if (a < 0 and b < 0 and res >= 0) or (a >= 0 and b >= 0 and res < 0) else 0
         Flag = str(nFlag) + str(zeroFlag) + str(cFlag) + str(vFlag)
-        return (zeroFlag ,res, Flag)
+        return (zeroFlag, res, Flag)
     if block == 'Flags':
         control = data['Flags']['Control']
         if control == '1':

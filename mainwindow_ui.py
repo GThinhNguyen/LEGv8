@@ -107,8 +107,8 @@ class CodeHighlighter(QSyntaxHighlighter):
 
         # Danh sách từ khóa LEGv8 hoặc Python
         keywords = [
-            "ADD", "SUB", "AND", "ORR", "ADDI", "SUBI", "ANDI", "ORRI", "ANDIS",
-            "LDUR", "STUR", "CBZ", "B", "ADDS", "SUBS", "ANDS", "ADDIS", "SUBIS" 
+            "ADD", "SUB", "AND", "ORR", "ADDI", "SUBI", "ANDI", "ORRI", "ANDIS", "EORI",
+            "LDUR", "STUR", "CBZ", "B", "ADDS", "SUBS", "ANDS", "ADDIS", "SUBIS", "EOR" 
         ]
         self.keywordPatterns = [QRegExp(r'\b' + kw + r'\b') for kw in keywords]
         self.registerPattern = QRegExp(r'\bX[0-9]+\b')
