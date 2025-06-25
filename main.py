@@ -67,12 +67,6 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(10):  # Chỉ gán giá trị cho 10 thanh ghi đầu
             self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(str(i + 1)))  # Giá trị từ 1 đến 10
 
-        # --- Thêm dữ liệu mặc định cho RAM: giá trị từ 1 đến 10 ---
-        for row in range(self.ui.ramTable.rowCount()):
-            if row < 10:
-                value = str(row + 1)
-                self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(format(row + 1, '08b')))
-                self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
 
     def highlight_line(self, line_number):
         """Tô vàng dòng line_number (0-based) trong codeEditor."""
@@ -175,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.current_step += 1
             simulate.clear_animated_squares(self.ax)
             self.current_step = 0
-            self.current_line_idx += 1
+            self.current_line_idx = int(bits.data['PC']['Inp0'])//4
             if self.current_line_idx < total_lines:
                 self.highlight_line(self.current_line_idx)
 
@@ -201,7 +195,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.current_step >= len(order):
             simulate.clear_animated_squares(self.ax) #chạy hết 1 vòng thì xóa các khối vuông
             self.current_step = 0
-            self.current_line_idx +=1
+            self.current_line_idx = int(bits.data['PC']['Inp0'])//4
 
         if self.current_line_idx >= total_lines:
             QtWidgets.QMessageBox.information(self, "Kết thúc",
@@ -233,11 +227,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # Đưa giá trị thanh ghi về mặc định (0)
         for i in range(self.ui.registerShow.rowCount()):
             self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem("0"))
+            item = self.ui.ramTable.item(i, 1)
+            item.setBackground(QColor(255, 255, 200))
 
-        # Đưa giá trị RAM về mặc định (ByteValue = 00000000, WordValue = 0)
         for row in range(self.ui.ramTable.rowCount()):
-            self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem("00000000"))
-            self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem("0"))
+            # ByteValue
+            # WordValue
+            word_item = QtWidgets.QTableWidgetItem("0")
+            if row % 4 == 0:
+                word_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                self.ui.ramTable.setItem(row, 3, word_item)
+                word_item.setBackground(QColor(255, 255, 200))  # Nền trắng cho ô chỉnh sửa
 
         # Đặt lại bits.data về mặc định
         bits.reset_data()
