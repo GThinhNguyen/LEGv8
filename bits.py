@@ -120,6 +120,24 @@ def assemble_instruction(inst_str):
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1011001000
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op == 'ADDIS':
+        rd = int(parts[1].replace('X',''))
+        rn = int(parts[2].replace('X',''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1011000100
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op == 'ANDIS':
+        rd = int(parts[1].replace('X',''))
+        rn = int(parts[2].replace('X',''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1111001000
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op == 'SUBIS':
+        rd = int(parts[1].replace('X',''))
+        rn = int(parts[2].replace('X',''))
+        imm = int(parts[3].lstrip('#'))
+        opcode = 0b1111000100
+        instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     else:
         raise ValueError(f"assemble_instruction(): lệnh không hỗ trợ: {inst_str}")
 
@@ -181,6 +199,12 @@ def get_bits_for_path(block, ui = None):
             return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
         if inp[0:10] == '1011001000':  # ORRI
             return ('0', '0', '0', '0', '0', '0', '0', '0', '1', '10', '1')
+        if inp[0:10] == '1011000100':  # ADDIS
+            return ('0', '0', '0', '0', '0', '0', '0', '1', '1', '10', '1')
+        if inp[0:10] == '1111000100':  # SUBIS
+            return ('0', '0', '0', '0', '0', '0', '0', '1', '1', '10', '1')
+        if inp[0:10] == '1111001000':  # ANDIS
+            return ('0', '0', '0', '0', '0', '0', '0', '1', '1', '10', '1')
         raise KeyError(f"Unrecognized opcode: {inp}")
     if block == 'SE':
         instr = data['SE']['Inp']  # chuỗi 32-bit: instr[0] = bit 31, instr[31] = bit 0
@@ -196,7 +220,7 @@ def get_bits_for_path(block, ui = None):
             imm = instr[8:27]
         elif opcode3 == '000101':     # B (B-type)
             imm = instr[6:32]
-        elif opcode4 in ('1001000100', '1101000100', '1001001000', '1011001000'):  # ADDI, SUBI, ANDI, ORRI (I-type)
+        elif opcode4 in ('1001000100', '1101000100', '1001001000', '1011001000', '1011000100', '1111000100', '1111001000'):  # ADDI, SUBI, ANDI, ORRI, ADDIS, SUBIS, ANDIS (I-type)
             imm = instr[10:22]
         else:
             # Không phải lệnh có immediate
@@ -224,8 +248,11 @@ def get_bits_for_path(block, ui = None):
             }
             table2 = {
                 '1001000100': '0010',  # ADDI
+                '1011000100': '0010',  # ADDIS
                 '1101000100': '0110',  # SUBI
+                '1111000100': '0110',  # SUBIS
                 '1001001000': '0000',  # ANDI
+                '1111001000': '0000',  # ANDIS
                 '1011001000': '0001'   # ORRI
             }
             if ins in table:
@@ -290,6 +317,21 @@ def get_bits_for_path(block, ui = None):
             nzcv = data['Flags']['NZCVtmp']
             data['Flags']['NZCV'] = nzcv
         
+        nzcv = data['Flags']['NZCV']  # string 4 ký tự, ví dụ "1010"
+        n, z, c, v = nzcv[0], nzcv[1], nzcv[2], nzcv[3]
+
+        # Nếu muốn đổi màu nền để nổi bật khi flag = 1:
+        def highlight_flag(label, bit):
+            if bit == '1':
+                label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
+            else:
+                # reset về lightgray như mặc định
+                label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
+
+        highlight_flag(ui.n_flag, n)
+        highlight_flag(ui.z_flag, z)
+        highlight_flag(ui.c_flag, c)
+        highlight_flag(ui.v_flag, v)
         zeroFlag = data['Flags']['NZCV'][1]
         return (zeroFlag,)
     

@@ -351,7 +351,7 @@ def show_polygons(ax, polygons_dict):
         bottom, top = min(y0, y1), max(y0, y1)
         width, height = right - left, top - bottom
         box_width = width / 4
-        labels = ['Z', 'N', 'C', 'V']
+        labels = ['N', 'Z', 'C', 'V']
         for i, label in enumerate(labels):
             ax.add_patch(patches.Rectangle((left + i * box_width, bottom), box_width, height,
                                            linewidth=2, edgecolor='red', facecolor='none', zorder=6))

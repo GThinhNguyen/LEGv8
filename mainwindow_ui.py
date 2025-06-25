@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QPlainTextEdit, QWidget, QTextEdit, QApplication, QMainWindow, QVBoxLayout, QFrame, QTableWidget, QTableWidgetItem
-from PyQt5.QtGui import QColor, QPainter, QTextFormat
-from PyQt5.QtCore import QRect, Qt, QSize, pyqtSlot
+from PyQt5.QtGui import QColor, QPainter, QTextFormat, QFont, QSyntaxHighlighter, QTextCharFormat
+from PyQt5.QtCore import QRect, Qt, QSize, pyqtSlot, QRegExp
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -86,6 +86,61 @@ class CodeEditor(QPlainTextEdit):
             bottom = top + self.blockBoundingRect(block).height()
             blockNumber += 1
 
+class CodeHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Định nghĩa format cho các loại token
+        self.keywordFormat = QTextCharFormat()
+        self.keywordFormat.setForeground(QColor("#aa00a2"))
+        self.keywordFormat.setFontWeight(QFont.Bold)
+
+        self.commentFormat = QTextCharFormat()
+        self.commentFormat.setForeground(QColor("#228B22"))
+        self.commentFormat.setFontItalic(True)
+
+        self.numberFormat = QTextCharFormat()
+        self.numberFormat.setForeground(QColor("#006faa"))
+
+        self.registerFormat = QTextCharFormat()
+        self.registerFormat.setForeground(QColor("#050099"))
+        self.registerFormat.setFontWeight(QFont.Bold)
+
+        # Danh sách từ khóa LEGv8 hoặc Python
+        keywords = [
+            "ADD", "SUB", "AND", "ORR", "ADDI", "SUBI", "ANDI", "ORRI", "ANDIS",
+            "LDUR", "STUR", "CBZ", "B", "ADDS", "SUBS", "ANDS", "ADDIS", "SUBIS" 
+        ]
+        self.keywordPatterns = [QRegExp(r'\b' + kw + r'\b') for kw in keywords]
+        self.registerPattern = QRegExp(r'\bX[0-9]+\b')
+        self.numberPattern = QRegExp(r'\b\d+\b')
+        self.commentPattern = QRegExp(r'//.*')
+
+    def highlightBlock(self, text):
+        # Tô màu từ khóa
+        for pattern in self.keywordPatterns:
+            index = pattern.indexIn(text)
+            while index >= 0:
+                length = pattern.matchedLength()
+                self.setFormat(index, length, self.keywordFormat)
+                index = pattern.indexIn(text, index + length)
+        # Tô màu thanh ghi
+        index = self.registerPattern.indexIn(text)
+        while index >= 0:
+            length = self.registerPattern.matchedLength()
+            self.setFormat(index, length, self.registerFormat)
+            index = self.registerPattern.indexIn(text, index + length)
+        # Tô màu số
+        index = self.numberPattern.indexIn(text)
+        while index >= 0:
+            length = self.numberPattern.matchedLength()
+            self.setFormat(index, length, self.numberFormat)
+            index = self.numberPattern.indexIn(text, index + length)
+        # Tô màu comment
+        index = self.commentPattern.indexIn(text)
+        while index >= 0:
+            length = self.commentPattern.matchedLength()
+            self.setFormat(index, length, self.commentFormat)
+            index = self.commentPattern.indexIn(text, index + length)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -153,7 +208,7 @@ class Ui_MainWindow(object):
         self.code_layout.addWidget(self.codeEditor)
         
         self.top_layout.addWidget(self.code_frame, stretch=2)  # Cho code_frame chiếm nhiều không gian hơn
-        
+        self.highlighter = CodeHighlighter(self.codeEditor.document())
         # Register frame
         self.reg_frame = QtWidgets.QFrame(self.centralwidget)
         self.reg_frame.setFrameShape(QtWidgets.QFrame.Box)
