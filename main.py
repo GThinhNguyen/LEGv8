@@ -219,14 +219,15 @@ class MainWindow(QtWidgets.QMainWindow):
         if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
             rd= bits.data['Reg']['WriteRegister']
             rd_value = bits.data['Reg']['WriteData']
-            self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+            if int(rd, 2) != 31:
+                self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
 
         self.canvas.draw_idle()
         self.current_step += 1
 
     def handle_clean(self):
         # Đưa giá trị thanh ghi về mặc định (0)
-        for i in range(self.ui.registerShow.rowCount()):
+        for i in range(self.ui.registerShow.rowCount()-1):
             self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem("0"))
             item = self.ui.ramTable.item(i, 1)
             item.setBackground(QColor(255, 255, 200))
