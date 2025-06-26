@@ -4,143 +4,117 @@ import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
 from matplotlib.path import Path
 import bits  # Thêm dòng này ở đầu file
-
-
+# Đã cộng thêm 200 vào các tọa độ X lớn hơn hoặc bằng 1310
 polygons = {
-    #Rectangle (chỉ lấy trái trên và phải dưới)
-    'PC': np.array([[30, 441], [68, 522]]),
-    'IM': np.array([[110, 467], [216, 629]]),
-    'Reg': np.array([[460, 452], [606, 642]]),
-    'Mem': np.array([[970, 534], [1093, 710]]),
-    'Flags': np.array([[726, 427], [848, 464]]),
+    'PC': np.array([[ -250, 520], [ -200, 570]]),  # -90-100, -40-100
+    'IM': np.array([[-120, 470], [ 30, 630]]),     # 40-100, 180-100
+    'Reg': np.array([[600, 450], [770, 690]]),
+    'Mem': np.array([[1200, 620], [1350, 800]]),  # 1200,1300 -> 1400,1500
+    'Flags': np.array([[1000, 400], [1160, 440]]),
 
-    #Rectangle with only top-left and bottom-right corners (as bounding boxes)
-    'M1': np.array([[406, 483], [434, 573]]),
-    'M2': np.array([[680, 550], [708, 640]]),
-    'M3': np.array([[1145, 586], [1173, 676]]),
-    'M4': np.array([[1094, 73], [1122, 163]]),
+    'M1': np.array([[470, 480], [500, 580]]),
+    'M2': np.array([[900, 550], [930, 650]]),
+    'M3': np.array([[1690, 560], [1720, 660]]),  # 1490,1520 -> 1690,1720
+    'M4': np.array([[1630, 45], [1660, 145]]),   # 1430,1460 -> 1630,1660
 
-    #Elipse (chỉ lấy trái trên và phải dưới của bounding box)
-    'SE': np.array([[509, 688], [589, 768]]),  # width = 80, height = 80 (giữ center, làm hình tròn)
-    'SL2': np.array([[715, 168], [781, 234]]), # width = 66, height = 66 (giữ center, làm hình tròn)
-    'ALUControl': np.array([[692, 713], [773, 808]]),
-    'Control': np.array([[397, 220], [478, 439]]),
+    'SE': np.array([[680, 700], [780, 800]]),
+    'SL2': np.array([[940, 110], [1020, 190]]),
+    'ALUControl': np.array([[910, 770], [1010, 870]]),
+    'Control': np.array([[360, 220], [460, 440]]),
 
-    #ALUShape
-    'ALU': np.array([[838, 511], [838, 584], [740, 623], [740, 568], [759, 549], [737, 527], [737, 473]]),
-    'ADD2': np.array([[907, 132], [907, 192], [813, 226], [813, 179], [829, 163], [809, 143], [809, 105]]),
-    'ADD1': np.array([[265, 63], [265, 115], [207, 140], [207, 104], [221, 90], [204, 73], [204, 34]]),
+    'ALU': np.array([[1120, 520], [1120, 600], [1000, 640], [1000, 570], [1030, 560], [1000, 550], [1000, 480]]),
+    'ADD2': np.array([[1180, 110], [1180, 145], [1120, 165], [1120, 132.5], [1135, 127.5], [1120, 122.5], [1120, 90]]),
+    'ADD1': np.array([[240, 50], [240, 85], [180, 105], [180, 72.5], [195, 67.5], [180, 62.5], [180, 30]]),
 
-    #Others
-    'OR': np.array([[1064, 241], [1083, 255], [1064, 274], [1041, 274], [1049, 259], [1041, 236]]),
-    'AND1': np.array([[874, 419], [907, 419], [918, 437], [901, 452], [873, 452]]),
-    'AND2': np.array([[966, 421], [966, 460], [991, 460], [1007, 441], [986, 416]]),
+    'OR': np.array([[1550, 240], [1610, 320]]),   # 1350,1410 -> 1550,1610
+    'AND1': np.array([[1380, 360], [1480, 440]]), # 1350,1410 -> 1550,1610
+    'AND2': np.array([[1380, 480], [1480, 560]]), # 1350,1410 -> 1550,1610
 }
 
+# Tọa độ các điểm dựa vào connection_map và lines
 points = {
-    'P1': (83, 482),
-    'P2': (240, 549),
-    'P3': (352, 587),
-    'P4': (458, 738),
-    'P5': (625, 566),
-    'P6': (650, 625),
-    'P7': (945, 568),
-    'P8': (80, 221),
+    'P1': (-160, 530),         # Đầu vào của IM (L59)
+    'P2': (210, 550),          # Nút giao L29, L30, L31, L32, L33, L34, L35, L36, L39
+    'P3': (360, 590),          # Nút giao L36, L37, L38
+    'P4': (600, 750),          # Nút giao L39, L40, L53
+    'P5': (810, 570),          # Nút giao L42, L43, L44
+    'P6': (850, 630),          # Nút giao L54, L55, L56
+    'P7': (1150, 570),         # Nút giao L45, L46, L47
+    'P8': (-160, 100),         # Nút giao L1, L2, L5
 }
-
 
 lines = {
-    #From Control
-    #Reg2Log
-    'L13': np.array([[451, 224], [476, 224], [476, 182], [229, 182], [229, 625], [424, 625], [424, 573]]),
-    #UnsecondBranch
-    'L14': np.array([[463, 244], [1047, 246]]),
-    #FlagBranch
-    'L15': np.array([[472, 267], [865, 267], [865, 429], [882, 429]]),
-    #ZeroBranch
-    'L16': np.array([[474, 288], [949, 288], [949, 433], [972, 433]]),
-    #MemRead
-    'L17': np.array([[476, 310], [1212, 310], [1212, 752], [1033, 752], [1033, 710]]),
-    #MemToReg
-    'L18': np.array([[478, 331], [1155, 331], [1155, 582]]),
-    #MemWrite
-    'L19': np.array([[478, 352], [1033, 352], [1033, 530]]),
-    #FlagWrite
-    'L20': np.array([[476, 371], [792, 371], [792, 428]]),
-    #ALUSrc
-    'L21': np.array([[471, 394], [694, 394], [694, 551]]),
-    #ALUOp
-    'L22': np.array([[465, 415], [635, 415], [635, 846], [733, 846], [733, 808]]),
-    #RegWrite
-    'L23': np.array([[449, 434], [532, 434], [533, 451]]),
-    #ALUControl to ALU
-    'L24': np.array([[768, 760], [788, 760], [788, 604]]),
+    'L18': np.array([[420, 220], [1705, 220], [1705, 550]]),  # 1505+200
+    'L14': np.array([[430, 242], [1550, 242]]),               # 1350+200
+    'L15': np.array([[440, 264], [1340, 264], [1340, 380], [1380, 380]]),  # 1270+200,1275+200
+    'L16': np.array([[450, 286], [1300, 286], [1300, 500], [1380, 500]]),  # 1250+200,1270+200
+    'L17': np.array([[460, 308], [1260, 308], [1260, 620]]),               # 1240+200
+    'L19': np.array([[460, 330], [1220, 330], [1220, 620]]),               # 1200+200
+    'L20': np.array([[460, 352], [1080, 352], [1080, 400]]),
+    'L22': np.array([[450, 374], [960, 374], [960, 750]]),
+    'L21': np.array([[440, 396], [915, 396], [915, 550]]),
+    'L23': np.array([[430, 418], [685, 418], [685, 450]]),
+    'L13': np.array([[420, 440], [485, 440], [485, 480]]),
 
-    #from ALU
-    'L25': np.array([[839, 530], [948, 530], [948, 450], [971, 450]]),
-    'L26': np.array([[907, 438], [930, 438], [930, 260], [1046, 258]]),
-    'L27': np.array([[1080, 256], [1106, 256], [1106, 179]]),
-    'L28': np.array([[1002, 441], [1019, 441], [1017, 267], [1041, 267]]),
+    'L24': np.array([[1010, 820], [1070, 820], [1070, 600]]),
 
-    'L45': np.array([[839, 568], [945, 568]]),#46, 47
-    'L46': np.array([[945, 568], [971, 568]]),
-    'L47': np.array([[945, 566], [945, 731], [1122, 733], [1122, 656], [1140, 654]]),
+    'L25': np.array([[1120, 540], [1380, 540]]),              # 1250+200
+    'L26': np.array([[1440, 400], [1480, 400], [1480, 280], [1560, 280]]),  # 1320+200,1325+200,1350+200
+    'L27': np.array([[1605, 280], [1645, 280], [1645, 145]]),               # 1410+200,1440+200
+    'L28': np.array([[1440, 520], [1520, 520], [1520, 315], [1560, 315]]),  # 1320+200,1330+200,1350+200
 
-    'L48': np.array([[789, 490], [789, 466]]),
+    'L45': np.array([[1120, 580], [1160, 580]]),              # 1230+200
+    'L46': np.array([[1150, 570], [1150, 650], [1200, 650]]), # 1200+200
+    'L47': np.array([[1160, 580], [1690, 580]]),              # 1230+200,1490+200
 
-    # from Instruc Memory
-    'L29': np.array([[219, 549], [242, 549]]),#32, 33, 34, 36, 39
-    'L30': np.array([[242, 547], [242, 502]]),
-    'L31': np.array([[240, 503], [240, 474]]),
-    'L32': np.array([[240, 474], [240, 329], [394, 329]]),
-    'L33': np.array([[239, 474], [457, 474]]),
-    'L34': np.array([[237, 503], [403, 503]]),
-    'L35': np.array([[242, 543], [242, 587]]),
-    'L36': np.array([[242, 587], [352, 587]]), #37, 38
-    'L37': np.array([[352, 587], [352, 555], [397, 555]]),
-    'L38': np.array([[352, 583], [453, 583]]),
-    'L39': np.array([[239, 588], [239, 736], [458, 736]]), #40, 53
-    'L40': np.array([[458, 738], [505, 738]]),
-    'L53': np.array([[457, 741], [457, 833], [646, 833], [646, 758], [692, 758]]),
+    'L48': np.array([[1070, 490], [1070, 450]]),
 
-    #from Registers
-    'L41': np.array([[604, 503], [737, 503]]),
-    'L42': np.array([[606, 566], [625, 566]]), #43, 44
-    'L43': np.array([[625, 566], [673, 566]]),
-    'L44': np.array([[624, 568], [624, 685], [968, 685]]),
+    'L29': np.array([[30, 550], [210, 550]]),
+    'L30': np.array([[210, 550], [210, 500]]),
+    'L31': np.array([[210, 500], [210, 470]]),
+    'L32': np.array([[210, 470], [210, 330], [360, 330]]),
+    'L33': np.array([[210, 470], [600, 470]]),
+    'L34': np.array([[210, 500], [470, 500]]),
+    'L35': np.array([[210, 540], [210, 590]]),
+    'L36': np.array([[210, 590], [360, 590]]),
+    'L37': np.array([[360, 590], [360, 560], [470, 560]]),
+    'L38': np.array([[360, 590], [600, 590]]),
+    'L39': np.array([[210, 590], [210, 750], [600, 750]]),
+    'L40': np.array([[600, 750], [660, 750]]),
+    'L53': np.array([[600, 740], [600, 820], [910, 820]]),
 
-    #from data memory
-    'L49': np.array([[1092, 598], [1134, 598]]),
+    'L41': np.array([[770, 500], [1000, 500]]),
+    'L42': np.array([[770, 570], [810, 570]]),
+    'L43': np.array([[810, 570], [900, 570]]),
+    'L44': np.array([[810, 570], [810, 690], [1200, 690]]),   # 1200+200
 
-    #from multi
-    'L50': np.array([[440, 530], [455, 530]]),
-    'L51': np.array([[710, 593], [733, 593]]),
-    'L52': np.array([[1167, 624], [1187, 624] , [1185, 854], [434, 856], [434, 624], [459, 624]]),
-    'L9a': np.array([[1123, 126], [1185, 126], [1185, 11], [11, 11], [11, 482], [20, 482]]), # L9 (1)
-    
-    #from signed-extended
-    'L54': np.array([[588, 737], [650, 737], [650, 625]]),#55, 56
-    'L55': np.array([[652, 625], [674, 625]]),
-    'L56': np.array([[650, 627], [650, 201], [710, 201]]),
+    'L49': np.array([[1350, 640], [1690, 640]]),              # 1300+200,1490+200
 
-    #from sift left 2
-    'L57': np.array([[777, 201], [811, 201]]),
+    'L50': np.array([[500, 530], [600, 530]]),
+    'L51': np.array([[930, 600], [1000, 600]]),
+    'L52': np.array([[1720, 600], [1740, 600], [1740, 890], [570, 890], [570, 620], [600, 620]]),  # 1520+200,1540+200
+    'L9a': np.array([[1660, 90], [1740, 90], [1740, 10], [ -225, 10], [ -225, 520]]),            # 1460+200,1540+200
 
-    'L60': np.array([[848, 450], [870, 450]]),
+    'L54': np.array([[770, 750], [850, 750], [850, 630]]),
+    'L55': np.array([[850, 630], [900, 630]]),
+    'L56': np.array([[850, 630], [850, 150], [920, 150]]),
 
-    #from PC
-    'L58': np.array([[68, 482], [83, 482]]), #1, 59
-    'L59': np.array([[83, 484], [104, 484]]),
-    'L1': np.array([[83, 482], [83, 221]]), #2, 5
-    'L5': np.array([[80, 221], [340, 221], [340, 127], [809, 122]]),
-    'L2': np.array([[80, 217], [80, 57], [202, 57]]),
+    'L57': np.array([[1020, 150], [1120, 150]]),
 
-    'L4': np.array([[166, 116], [204, 116]]),
-    
-    #From Add
-    'L8': np.array([[269, 85], [1089, 85]]),
-    'L9b': np.array([[905, 162], [1085, 162]])
+    'L60': np.array([[1160, 420], [1380, 420]]),              # 1260+200
+
+    'L58': np.array([[-200, 530], [-160, 530]]),
+    'L59': np.array([[-160, 530], [-120, 530]]),
+    'L1': np.array([[-160, 530], [-160, 100]]),
+    'L5': np.array([[-160, 100], [1120, 100]]),
+    'L2': np.array([[-160, 100], [-160, 40], [170, 40]]),
+
+    'L4': np.array([[120, 80], [170, 80]]),
+
+    'L8': np.array([[250, 70], [1620, 70]]),                  # 1420+200
+    'L9b': np.array([[1180, 125], [1610, 125]])               # 1410+200
 }
+
 
 
 line_next = {
@@ -232,11 +206,24 @@ connection_map = {
     'L9b': [{'to': 'M4', 'port': 'Inp1', 'value': '0'}],
 }
 
-
+# Mapping for full names of blocks, allow line breaks with \n
+full_names = {
+    'IM': 'Instruction\nmemory',
+    'Reg': 'Registers',
+    'Mem': 'Data\nmemory',
+    'SE': 'Sign\nextend',
+    'ALUControl': 'ALU\ncontrol',
+    'SL2': 'Shift\nleft 2'
+}
+def format_multiline(text):
+    """
+    Định dạng tên block cho phép xuống dòng bằng ký tự '\\n'.
+    """
+    return r"$\bf{" + text.replace('\n', r'}$' + '\n' + r'$\bf{') + r"}$"
 
 def show_name(ax, polygons_dict):
     """
-    Hiển thị tên block và các nhãn phụ cho sơ đồ.
+    Hiển thị tên block và các nhãn phụ cho sơ đồ, cho phép tên xuống dòng.
     """
     rects = {'PC', 'IM', 'Reg', 'Mem'}
     rounded_rects = {'M1', 'M2', 'M3', 'M4'}
@@ -246,6 +233,7 @@ def show_name(ax, polygons_dict):
         poly = np.array(poly)
         if poly.ndim != 2 or poly.shape[0] < 2:
             continue
+        display_name = full_names.get(name, name)
         if poly.shape[0] == 2:
             x0, y0 = poly[0]
             x1, y1 = poly[1]
@@ -253,56 +241,61 @@ def show_name(ax, polygons_dict):
             bottom, top = min(y0, y1), max(y0, y1)
             cx, cy = (left + right) / 2, (bottom + top) / 2
             if name in rects:
-                ax.text(right - 4, top - 25, r"$\bf{" + name + "}$", color='black', fontsize=12, ha='right', va='top', zorder=200)
+                ax.text(right - 3, top - 3, format_multiline(display_name), color='black', fontsize=11, ha='right', va='bottom', zorder=200, linespacing=0.8)
             elif name in ellipses:
-                ax.text(cx, cy, r"$\bf{" + name + "}$", color='black', fontsize=12, ha='center', va='center', zorder=200)
+                ax.text(cx, cy, format_multiline(display_name), color='black', fontsize=11, ha='center', va='center', zorder=200, linespacing=0.8)
             elif name.startswith('M') and name in rounded_rects:
-                ax.text(cx, bottom + 30, '0', color='black', fontsize=12, ha='center', va='bottom', zorder=200)
-                ax.text(cx, top - 30, '1', color='black', fontsize=12, ha='center', va='top', zorder=200)
+                ax.text(cx, bottom + 30, '0', color='black', fontsize=11, ha='center', va='bottom', zorder=200)
+                ax.text(cx, top - 30, '1', color='black', fontsize=11, ha='center', va='top', zorder=200)
         elif name == 'ALU':
-            # Tính bounding box cho ALU để đặt nhãn ở giữa
             poly_alu = np.array(polygons_dict['ALU'])
             min_x, max_x = np.min(poly_alu[:, 0]), np.max(poly_alu[:, 0])
             min_y, max_y = np.min(poly_alu[:, 1]), np.max(poly_alu[:, 1])
             cx_alu = (min_x + max_x) / 2
             cy_alu = (min_y + max_y) / 2
-            ax.text(cx_alu, cy_alu, r"$\bf{ALU}$", color='black', fontsize=12, ha='center', va='center', zorder=200)
+            ax.text(cx_alu, cy_alu, format_multiline('ALU'), color='black', fontsize=11, ha='center', va='center', zorder=200, linespacing=0.8)
 
     # Nhãn phụ cho IM
-    ax.text(215, 548, "Instruction\n[31-0]", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
-    ax.text(112, 470, "Read\naddress", color='black', fontsize=9, ha='left', va='top', zorder=200, linespacing=0.8)
+    ax.text(30 - 3, 470 + 3, "Instruction\n[31-0]", color='black', fontsize=9, ha='right', va='top', zorder=200, linespacing=0.8)
+    ax.text(-120 + 3, 520 - 3, "Read\naddress", color='black', fontsize=9, ha='left', va='top', zorder=200, linespacing=0.8)
 
     # Nhãn cho Reg
-    reg_left, reg_right = 460, 606
-    reg_labels = [("Read\nregister 1", 474), ("Read\nregister 2", 530), ("Write\nregister", 583), ("Write\ndata", 624)]
-    for label, y in reg_labels:
+    reg_left, reg_right = 600, 770
+    reg_labels_left = [
+        ("Read\nregister 1", 470),
+        ("Read\nregister 2", 530),
+        ("Write\nregister", 590),
+        ("Write data", 635)
+    ]
+    for label, y in reg_labels_left:
         ax.text(reg_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=200, linespacing=0.8)
-    reg_labels_right = [("Read\ndata 1", 503), ("Read\ndata 2", 566)]
+    reg_labels_right = [("Read\ndata 1", 500), ("Read\ndata 2", 570)]
     for label, y in reg_labels_right:
         ax.text(reg_right - 3, y, label, color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
 
     # Nhãn cho Mem
-    mem_left, mem_right = 970, 1093
-    mem_labels_left = [("Address", 568), ("Write\ndata", 685)]
+    mem_left, mem_right = polygons_dict['Mem'][0][0], polygons_dict['Mem'][1][0]
+    mem_labels_left = [("Address", 650), ("Write\ndata", 700)]
     for label, y in mem_labels_left:
         ax.text(mem_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=200, linespacing=0.8)
-    ax.text(mem_right - 3, 598, "Read\ndata", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+    ax.text(mem_right - 3, 640, "Read\ndata", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
 
     # Nhãn cho ALU (Zero)
     alu_zero_x, alu_zero_y = polygons_dict.get('ALU', np.array([[0,0]]))[0]
-    ax.text(alu_zero_x - 3, 530, "Zero", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+    ax.text(alu_zero_x - 3, 520, "Zero", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
 
     # Hiển thị tên các cổng đầu ra của Control (bên phải, căn trái)
     control_right = polygons_dict['Control'][1][0]
+    control_lines = [lines[n] for n in line_next.get('Control', []) if n in lines]
     control_ports = [
         "Reg2Loc", "Uncondbranch", "Branch", "ZeroBranch", "MemRead",
         "MemtoReg", "MemWrite", "FlagWrite", "ALUSrc", "ALUOp", "RegWrite"
     ]
-    control_lines = [lines[n] for n in line_next.get('Control', []) if n in lines]
     if len(control_lines) == len(control_ports):
         for port, line in zip(control_ports, control_lines):
             ax.text(control_right + 10, line[0][1] - 7, port, color='black', fontsize=9,
                     ha='left', va='center', zorder=200)
+
 
 def show_background(ax, path):
     import matplotlib.image as mpimg
@@ -326,7 +319,58 @@ def show_polygons(ax, polygons_dict):
             left, right = min(x0, x1), max(x0, x1)
             bottom, top = min(y0, y1), max(y0, y1)
             width, height = right - left, top - bottom
-            if name in rounded_rects:
+
+            if name in ['AND1', 'AND2']:
+                # Vẽ nửa hình chữ nhật bên trái và nửa hình tròn bên phải cho AND1, AND2
+                rect_width = width * 0.2
+                # Vẽ 3 cạnh của hình chữ nhật bên trái (trên, trái, dưới)
+                # Trên (chỉ vẽ 0.2 chiều dài)
+                ax.plot([left, left + rect_width], [bottom, bottom], color='red', lw=2, zorder=5)
+                # Trái
+                ax.plot([left, left], [bottom, top], color='red', lw=2, zorder=5)
+                # Dưới (chỉ vẽ 0.2 chiều dài)
+                ax.plot([left, left + rect_width], [top, top], color='red', lw=2, zorder=5)
+                # Nửa hình tròn bên phải
+                center_x = left + rect_width
+                center_y = bottom + height / 2
+                theta1 = -90
+                theta2 = 90
+                arc = patches.Arc((center_x, center_y), height, height, angle=0,
+                                  theta1=theta1, theta2=theta2, linewidth=2, edgecolor='red', zorder=5)
+                ax.add_patch(arc)
+            elif name in ['OR']:
+                # Đường cong bên trái (dạng OR gate)
+                # Vẽ một đường cong lồi bên trái, dùng Bezier
+                p0 = [left, bottom]
+                p1 = [left + width * 0.25, bottom + height * 0.5]
+                p2 = [left, top]
+                bezier_x = []
+                bezier_y = []
+                for t in np.linspace(0, 1, 100):
+                    x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
+                    y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
+                    bezier_x.append(x)
+                    bezier_y.append(y)
+                ax.plot(bezier_x, bezier_y, color='red', lw=2, zorder=5)
+
+                # Đường cong bên phải (nửa hình tròn)
+                rect_width = width * 0.2
+                center_x = left + rect_width
+                center_y = bottom + height / 2
+                theta = np.linspace(-np.pi/2, np.pi/2, 100)
+                arc_x = center_x + (height/2) * np.cos(theta)
+                arc_y = center_y + (height/2) * np.sin(theta)
+                ax.plot(arc_x, arc_y, color='red', lw=2, zorder=5)
+                # Nối đường cong với nửa đường tròn bằng đoạn thẳng
+                # Điểm cuối của đường cong Bezier (p2)
+                # Điểm đầu của nửa hình tròn (arc_x[0], arc_y[0])
+                # Nối điểm đầu của đường cong Bezier với điểm đầu của nửa hình tròn
+                ax.plot([bezier_x[0], arc_x[0]], [bezier_y[0], arc_y[0]], color='red', lw=2, zorder=5)
+                # Nối điểm cuối của đường cong Bezier với điểm cuối của nửa hình tròn
+                ax.plot([bezier_x[-1], arc_x[-1]], [bezier_y[-1], arc_y[-1]], color='red', lw=2, zorder=5)
+
+
+            elif name in rounded_rects:
                 ax.add_patch(FancyBboxPatch((left, bottom), width, height,
                                             boxstyle="round,pad=0.02,rounding_size=15",
                                             linewidth=2, edgecolor='red', facecolor='none', zorder=5))
@@ -362,11 +406,18 @@ def show_polygons(ax, polygons_dict):
     show_name(ax, polygons_dict)
 
 def show_lines(ax, lines_dict):
-    for line in lines_dict.values():
+    for name, line in lines_dict.items():
         line = np.array(line)
         if line.ndim != 2 or line.shape[0] < 2:
             continue
-        ax.plot(*line.T, lw=1, color='black')  # Độ dày line mỏng hơn (lw=1)
+        ax.plot(*line.T, lw=1, color='black')
+        # # Hiển thị tên line ở giữa đường
+        # mid_idx = len(line) // 2
+        # if len(line) % 2 == 0:
+        #     mid_point = (line[mid_idx - 1] + line[mid_idx]) / 2
+        # else:
+        #     mid_point = line[mid_idx]
+        # ax.text(mid_point[0], mid_point[1], name, color='blue', fontsize=7, ha='center', va='center', zorder=50)
 
 def show_points(ax, point_coords):
     for name, (x, y) in point_coords.items():
