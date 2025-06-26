@@ -104,6 +104,11 @@ class CodeHighlighter(QSyntaxHighlighter):
         self.registerFormat = QTextCharFormat()
         self.registerFormat.setForeground(QColor("#050099"))
         self.registerFormat.setFontWeight(QFont.Bold)
+        special_regs = ["XZR", "SP", "FP", "LR"]
+        num_regs = r"(?:[XW](?:[0-9]|[12][0-9]|3[01]))"
+        special = r"|".join(special_regs)
+        self.registerPattern = QRegExp(r'\b(?:' + num_regs + r'|' + special + r')\b')
+        self.registerPattern.setCaseSensitivity(Qt.CaseInsensitive)
 
         # Danh sách từ khóa LEGv8 hoặc Python
         keywords = [
@@ -111,7 +116,6 @@ class CodeHighlighter(QSyntaxHighlighter):
             "LDUR", "STUR", "CBZ", "B", "ADDS", "SUBS", "ANDS", "ADDIS", "SUBIS", "EOR" 
         ]
         self.keywordPatterns = [QRegExp(r'\b' + kw + r'\b') for kw in keywords]
-        self.registerPattern = QRegExp(r'\bX[0-9]+\b')
         self.numberPattern = QRegExp(r'\b\d+\b')
         self.commentPattern = QRegExp(r'//.*')
 
@@ -228,7 +232,16 @@ class Ui_MainWindow(object):
         self.registerShow.setHorizontalHeaderItem(0, item)
         
         self.reg_layout.addWidget(self.registerShow, 0, 0, 5, 1)
-        
+        for i in range(32):
+            if i == 31:
+                item = QtWidgets.QTableWidgetItem("0")
+                # Không cho chỉnh sửa XZR
+                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+                # Có thể thêm màu nền khác biệt nếu muốn:
+                item.setBackground(QtGui.QColor(240, 240, 240))
+            else:
+                item = QtWidgets.QTableWidgetItem("")
+            self.registerShow.setItem(i, 0, item)
         # Bảng hiển thị RAM
         self.ramTable = QTableWidget(self.reg_frame)
         self.ramTable.setObjectName("ramTable")

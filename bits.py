@@ -60,18 +60,42 @@ def parse_signed(val):
         return 0
 
 def get_register_value(idx, ui):
+    if idx == 31:
+        return 0
     item = ui.registerShow.item(idx, 0)
     try:
         return int(item.text()) if item and item.text() not in ("", None) else 0
     except Exception:
         return 0
+    
+def parse_reg(p: str) -> int:
+    """
+    Chuyển tên thanh ghi thành số:
+    - 'Xn' -> n
+    - 'Wn' -> n (lower 32-bit)
+    - 'XZR', 'WZR', 'SP', 'WSP' -> 31
+    - 'FP' -> 29 (frame pointer)
+    - 'LR' -> 30 (link register)
+    """
+    p = p.upper()
+    # Special aliases
+    special = {
+        'XZR': 31, 'SP': 28, 
+        'FP': 29,  'LR': 30
+    }
+    if p in special:
+        return special[p]
+    # General Xn or Wn
+    if (p.startswith('X') or p.startswith('W')) and p[1:].isdigit():
+        return int(p[1:])
+    raise ValueError(f"Invalid register: {p}")
 
 def assemble_instruction(inst_str):
-    parts = inst_str.replace(',', '').replace('[', '').replace(']', '').split()
+    parts = inst_str.replace(',', ' ').replace('[', ' ').replace(']', ' ').split()
     op = parts[0].upper()
 
     if op in ('ADD', 'SUB', 'AND', 'ORR', 'ADDS', 'SUBS', 'ANDS', 'EOR'):
-        rd, rn, rm = [int(p.replace('X','')) for p in parts[1:4]]
+        rd, rn, rm = map(parse_reg, parts[1:4])
         opcodes = {
             'ADD': 0b10001011000,
             'SUB': 0b11001011000,
@@ -87,19 +111,19 @@ def assemble_instruction(inst_str):
         instr = (opcode << 21) | (rm << 16) | (shamt << 10) | (rn << 5) | rd
     elif op == 'LDUR':
         # cú pháp: LDUR Xd, [Xn, #imm]
-        rt = int(parts[1].replace('X',''))
-        rn = int(parts[2].replace('X',''))
+        rt = parse_reg(parts[1])
+        rn = parse_reg(parts[2])
         imm = int(parts[3].lstrip('#'))
         opcode = 0b11111000010
         instr = (opcode << 21) | ((imm & 0x1FF) << 12) | (rn << 5) | rt
     elif op == 'STUR':
-        rt = int(parts[1].replace('X',''))
-        rn = int(parts[2].replace('X',''))
+        rt = parse_reg(parts[1])
+        rn = parse_reg(parts[2])
         imm = int(parts[3].lstrip('#'))
         opcode = 0b11111000000
         instr = (opcode << 21) | ((imm & 0x1FF) << 12) | (rn << 5) | rt
     elif op == 'CBZ':
-        rt = int(parts[1].replace('X',''))
+        rt = parse_reg(parts[1])
         imm = int(parts[2].lstrip('#'))
         opcode = 0b10110100
         instr = (opcode << 24) | ((imm & 0x7FFFF) << 5) | rt
@@ -108,50 +132,50 @@ def assemble_instruction(inst_str):
         opcode = 0b000101
         instr = (opcode << 26) | (imm & 0x3FFFFFF)
     elif op == 'ADDI':
-        rd = int(parts[1].replace('X', ''))
-        rn = int(parts[2].replace('X', ''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1001000100
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'SUBI':
-        rd = int(parts[1].replace('X', ''))
-        rn = int(parts[2].replace('X', ''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1101000100
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'ANDI':
-        rd = int(parts[1].replace('X', ''))
-        rn = int(parts[2].replace('X', ''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1001001000
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'ORRI':
-        rd = int(parts[1].replace('X', ''))
-        rn = int(parts[2].replace('X', ''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1011001000
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'EORI':
-        rd = int(parts[1].replace('X', ''))
-        rn = int(parts[2].replace('X', ''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1101001000
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'ADDIS':
-        rd = int(parts[1].replace('X',''))
-        rn = int(parts[2].replace('X',''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1011000100
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'ANDIS':
-        rd = int(parts[1].replace('X',''))
-        rn = int(parts[2].replace('X',''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1111001000
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
     elif op == 'SUBIS':
-        rd = int(parts[1].replace('X',''))
-        rn = int(parts[2].replace('X',''))
+        rd = parse_reg(parts[1])    
+        rn = parse_reg(parts[2])  
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1111000100
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
@@ -159,6 +183,10 @@ def assemble_instruction(inst_str):
         raise ValueError(f"assemble_instruction(): lệnh không hỗ trợ: {inst_str}")
 
     return format(instr, '032b'),
+
+def remove_double_slash_comment(line):
+    # Loại bỏ phần comment bắt đầu từ //
+    return line.split('//')[0].rstrip()
 
 def get_bits_for_path(block, ui = None):
     # Trả về giá trị hoặc hàm trả giá trị dạng tuple
@@ -292,9 +320,10 @@ def get_bits_for_path(block, ui = None):
     if block == 'IM':
         addr = int(data['IM']['ReadAddress'])
         idx = addr // 4
-        lines = ui.codeEditor.toPlainText().splitlines()        
+        lines = ui.codeEditor.toPlainText().splitlines() 
+
         if 0 <= idx < len(lines):
-            return (lines[idx].strip(),)
+            return (remove_double_slash_comment(lines[idx].strip()),)
         return ("Khong co lenh",)
     if block == 'Reg':
         def reg_out():
@@ -324,29 +353,18 @@ def get_bits_for_path(block, ui = None):
         b = parse_signed(data['ALU']['ReadData2'])
         op = data['ALU']['ALUControl']
 
-        def to_unsigned32(val):
-            return val & 0xFFFFFFFF
-
-        if op in ('0000', '0001', '0011'):  # &, |, ^
-            a32 = to_unsigned32(a)
-            b32 = to_unsigned32(b)
-            if op == '0000':
-                res32 = a32 & b32
-            elif op == '0001':
-                res32 = a32 | b32
-            elif op == '0011':
-                res32 = a32 ^ b32
-            # Chuyển về signed 32 bit nếu cần
-            if res32 & 0x80000000:
-                res = res32 - 0x100000000
-            else:
-                res = res32
-        elif op == '0010':
+        if op == '0010':
             res = a + b
         elif op == '0110':
             res = a - b
         elif op == '0111':
             res = b
+        elif op == '0000':
+            res = a & b
+        elif op == '0001':
+            res = a | b
+        elif op == '0011':
+            res = a ^ b
         else:
             res = 0
 

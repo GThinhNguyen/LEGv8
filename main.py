@@ -165,7 +165,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 if block == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
                     rd= bits.data['Reg']['WriteRegister']
                     rd_value = bits.data['Reg']['WriteData']
-                    self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+                    if int(rd, 2) != 31:
+                        self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
                 self.current_step += 1
             simulate.clear_animated_squares(self.ax)
             self.current_step = 0
