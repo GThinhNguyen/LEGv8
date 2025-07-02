@@ -102,6 +102,7 @@ lines = {
     'L57': np.array([[1020, 150], [1120, 150]]),
 
     'L60': np.array([[1160, 420], [1380, 420]]),              # 1260+200
+    'L61': np.array([[360, 590], [360, 420], [1000, 420]]),
 
     'L58': np.array([[-200, 530], [-160, 530]]),
     'L59': np.array([[-160, 530], [-120, 530]]),
@@ -112,7 +113,8 @@ lines = {
     'L4': np.array([[120, 80], [170, 80]]),
 
     'L8': np.array([[250, 70], [1620, 70]]),                  # 1420+200
-    'L9b': np.array([[1180, 125], [1610, 125]])               # 1410+200
+    'L9b': np.array([[1180, 125], [1610, 125]]) 
+                                # 1410+200
 }
 
 
@@ -197,6 +199,7 @@ connection_map = {
     'L58': [{'to': 'P1', 'port': 'Inp0', 'value': '0'}],
     'L59': [{'to': 'IM', 'port': 'ReadAddress', 'value': '0'}],
     'L60': [{'to': 'AND1', 'port': 'Inp1', 'value': '0'}],
+
     'L1':  [{'to': 'P8', 'port': 'Inp0', 'value': '0'}],
     'L2':  [{'to': 'ADD1', 'port': 'Inp0', 'value': '0'}],
     'L4':  [{'to': 'ADD1', 'port': 'Inp1', 'value': '100'}],
@@ -295,6 +298,16 @@ def show_name(ax, polygons_dict):
         for port, line in zip(control_ports, control_lines):
             ax.text(control_right + 10, line[0][1] - 7, port, color='black', fontsize=9,
                     ha='left', va='center', zorder=200)
+            
+    # Thêm các nhãn instruction field tại các vị trí tương ứng, tăng x 4, giảm y 10
+    ax.text(100 + 4, 550 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 590 - 10, "Inst[4-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 500 - 10, "Inst[20-16]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 470 - 10, "Inst[9-5]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 330 - 10, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 750 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(600 + 4, 750 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(600 + 4, 820 - 10, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
 
 
 def show_background(ax, path):
@@ -439,9 +452,14 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
         seg_lens = np.linalg.norm(np.diff(path, axis=0), axis=1)
         total_len = np.sum(seg_lens)
         sq['distance_travelled'] = total_len
-        pos = path[-1]
-        sq['patch'].set_xy((pos[0] - sq['patch'].get_width()/2, pos[1] - sq['patch'].get_height()/2))
-        sq['text'].set_position((pos[0], pos[1]))
+
+        # ÁP DỤNG ĐIỀU CHỈNH VỊ TRÍ KẾT THÚC - PATCH VÀ TEXT CÙNG TRUNG TÂM
+        width = sq['patch'].get_width()
+        height = sq['patch'].get_height()
+        patch_center_x = path[-1][0]
+        patch_center_y = path[-1][1]
+        sq['patch'].set_xy((patch_center_x - width, patch_center_y))
+        sq['text'].set_position((patch_center_x - width/2, patch_center_y + height/2))
 
     move_squares = []
 
@@ -488,7 +506,15 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             height = bbox_data.height
             sq['patch'].set_width(width)
             sq['patch'].set_height(height)
+
+            # ÁP DỤNG ĐIỀU CHỈNH VỊ TRÍ SPAWN - PATCH VÀ TEXT CÙNG TRUNG TÂM
+            patch_center_x = path[0][0]
+            patch_center_y = path[0][1]
+            sq['patch'].set_xy((patch_center_x - width, patch_center_y))
+            sq['text'].set_position((patch_center_x - width/2, patch_center_y + height/2))
+
             move_squares.append(sq)
+
         else:
             temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
             renderer = ax.figure.canvas.get_renderer()
@@ -499,13 +525,18 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             height = bbox_data.height
             temp_text.remove()
 
-            start_pos = path[0]
+
+            # ÁP DỤNG ĐIỀU CHỈNH VỊ TRÍ SPAWN - PATCH VÀ TEXT CÙNG TRUNG TÂM
+            patch_center_x = path[0][0]
+            patch_center_y = path[0][1]
+
+
             rect = patches.Rectangle(
-                (start_pos[0] - width/2, start_pos[1] - height/2), width, height, color='blue', zorder=100
+                (patch_center_x - width, patch_center_y), width, height, color='blue', zorder=100
             )
             ax.add_patch(rect)
             text = ax.text(
-                start_pos[0], start_pos[1], bit_str, color='white', ha='center', va='center', fontsize=10, zorder=101
+                patch_center_x - width/2, patch_center_y + height/2, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=101
             )
             sq = {'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key}
             ax.existing_squares[key] = sq
@@ -538,11 +569,16 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             for i, seg_len in enumerate(seg_lens):
                 if remain < seg_len:
                     t = remain / seg_len
-                    pos = (1-t)*path[i] + t*path[i+1]
+                    width = sq['patch'].get_width()
+                    height = sq['patch'].get_height()
+                    pos = (1 - t) * path[i] + t * path[i + 1] + np.array([-width / 2, height / 2])
                     break
                 remain -= seg_len
             else:
-                pos = path[-1]
+                # ÁP DỤNG ĐIỀU CHỈNH VỊ TRÍ KẾT THÚC
+                width = sq['patch'].get_width()
+                height = sq['patch'].get_height()
+                pos = path[-1] + np.array([-width/2, height/2])
 
             sq['patch'].set_xy((pos[0] - sq['patch'].get_width()/2, pos[1] - sq['patch'].get_height()/2))
             sq['text'].set_position((pos[0], pos[1]))
@@ -553,7 +589,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             active_patches.append(sq['text'])
         return active_patches
 
-    ani = animation.FuncAnimation(ax.figure, update, interval=30, blit=False, cache_frame_data=False)
+    ani = animation.FuncAnimation(ax.figure, update, interval=10, blit=False, cache_frame_data=False)
     return ani
 
 def logic_step_from_block(start_block, lines, line_next, ui):
