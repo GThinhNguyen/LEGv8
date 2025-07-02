@@ -376,31 +376,83 @@ def get_bits_for_path(block, ui = None):
         return ('0',)
 
     if block == 'ALU':
-        a = parse_signed(data['ALU']['ReadData1'])
-        b = parse_signed(data['ALU']['ReadData2'])
+        a = parse_signed(data['ALU']['ReadData1'])   # signed 32-bit
+        b = parse_signed(data['ALU']['ReadData2'])   # signed 32-bit
         op = data['ALU']['ALUControl']
 
-        if op == '0010':
-            res = a + b
-        elif op == '0110':
-            res = a - b
-        elif op == '0111':
-            res = b
-        elif op == '0000':
-            res = a & b
-        elif op == '0001':
-            res = a | b
-        elif op == '0011':
-            res = a ^ b
-        else:
-            res = 0
+        MASK_32 = 0xFFFFFFFF
+        MAX_UINT = MASK_32
+        MAX_INT =  0x7FFFFFFF
+        MIN_INT = -0x80000000
 
+        # Chuyển sang unsigned 32-bit:
+        def to_u32(x):
+            return x & MASK_32
+
+        # Chuyển kết quả 32-bit sang signed:
+        def to_s32(x):
+            x = x & MASK_32
+            return x if x <= MAX_INT else x - (1 << 32)
+
+        a_u = to_u32(a)
+        b_u = to_u32(b)
+
+        raw = 0
+        if op == '0010':         # ADD
+            raw = a_u + b_u
+        elif op == '0110':       # SUB = a - b
+            # thực chất: a + (2^32 - b)
+            raw = (a_u - b_u) & MASK_32
+        elif op == '0111':       # MOV (res = b)
+            raw = b_u
+        elif op == '0000':       # AND
+            raw = a_u & b_u
+        elif op == '0001':       # ORR
+            raw = a_u | b_u
+        elif op == '0011':       # EOR
+            raw = a_u ^ b_u
+        else:
+            raw = 0
+
+        # Kết quả thực tế (signed 32-bit):
+        res = to_s32(raw)
+
+        # Z flag: 1 nếu res == 0
         zeroFlag = 1 if res == 0 else 0
-        nFlag = 1 if res < 0 else 0
-        cFlag = 1 if res > 0xFFFFFFFF else 0
-        vFlag = 1 if (a < 0 and b < 0 and res >= 0) or (a >= 0 and b >= 0 and res < 0) else 0
-        Flag = str(nFlag) + str(zeroFlag) + str(cFlag) + str(vFlag)
+        # N flag: 1 nếu res âm
+        nFlag    = 1 if res < 0 else 0
+
+        # C flag:
+        # - Với ADD: carry nếu raw > MAX_UINT
+        # - Với SUB: borrow nếu a_u < b_u, nhưng ARM/NZCV định nghĩa C=1 khi KHÔNG borrow => C = 1 nếu a_u >= b_u
+        # - Các op khác để 0
+        if op == '0010':           # ADD
+            cFlag = 1 if (a_u + b_u) > MAX_UINT else 0
+        elif op == '0110':         # SUB
+            cFlag = 1 if a_u >= b_u else 0
+        else:
+            cFlag = 0
+
+        # V flag (signed overflow):
+        # - Với ADD: 1 nếu a và b cùng dấu, nhưng res khác dấu
+        # - Với SUB: 1 nếu a và b khác dấu, và res khác dấu của a
+        if op == '0010':  # ADD
+            if (a >= 0 and b >= 0 and res < 0) or (a < 0 and b < 0 and res >= 0):
+                vFlag = 1
+            else:
+                vFlag = 0
+        elif op == '0110':  # SUB
+            if (a >= 0 and b < 0 and res < 0) or (a < 0 and b >= 0 and res >= 0):
+                vFlag = 1
+            else:
+                vFlag = 0
+        else:
+            vFlag = 0
+
+        # Ghép chuỗi NZCV
+        Flag = f"{nFlag}{zeroFlag}{cFlag}{vFlag}"
         return (zeroFlag, res, Flag)
+
     if block == 'Flags':
         control = data['Flags']['Control']
         if control == '1':

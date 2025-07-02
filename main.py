@@ -58,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.run_all_bottom.clicked.connect(self.simulate_all) 
         self.ui.run_step_bottom.clicked.connect(self.simulate_step) 
         self.ui.clean_bottom.clicked.connect(self.handle_clean)
-
+        self.ui.help_bottom.clicked.connect(self.show_instruction)
        # --- Thêm code mặc định ---
         default_code = "ADD X1, X2, X3\nADDI X4, X5, #10"
         self.ui.codeEditor.setPlainText(default_code)
@@ -261,6 +261,53 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.v_flag.setStyleSheet("background-color: lightgray; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
         simulate.clear_animated_squares(self.ax)
         self.canvas.draw_idle()
+
+    def show_instruction(self):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Hướng dẫn sử dụng")
+        dialog.resize(1000, 800)  # Chỉnh size tại đây
+
+        text = QtWidgets.QTextBrowser(dialog)
+        text.setHtml(
+            "<style>body {font-size:24px;} code {font-size:17px; color:#1976d2;} h2 {font-size:26px;} li {font-size:16px;margin-bottom:8px;} .note {font-size:16px;}</style>"
+            "<h2 style='color:#1976d2;'>LEGv8 Simulator - Hướng dẫn sử dụng</h2>"
+            "<ul>"
+            "<li><b>Mở file:</b> Nhấn <span style='color:#388e3c;'>Open</span> để chọn file mã lệnh LEGv8.</li>"
+            "<li><b>Chạy từng bước:</b> Nhấn <span style='color:#fbc02d;'>Run by Step</span> để chạy từng bước.</li>"
+            "<li><b>Chạy toàn bộ:</b> Nhấn <span style='color:#f57c00;'>Run All</span> để chạy hết chương trình. Nếu đang chạy <span style='color:#fbc02d;'>Run by Step</span> thì chương trình sẽ chạy từ bước hiện tại đến hết.</li>"
+            "<li><b>Lưu file:</b> Nhấn <span style='color:#1976d2;'>Save</span> để lưu lại mã lệnh.</li>"
+            "<li><b>Đóng file:</b> Nhấn <span style='color:#d32f2f;'>Close</span> để đóng file hiện tại.</li>"
+            "<li><b>Làm sạch:</b> Nhấn <span style='color:#388e3c;'>Clean</span> để reset RAM, thanh ghi và trạng thái đang chạy của <span style='color:#fbc02d;'>Run by Step</span>.</li>"
+            "<li><b>Xem hướng dẫn:</b> Nhấn <span style='color:#1976d2;'>Instruction</span> để xem hướng dẫn.</li>"
+            "</ul>"
+            "<hr>"
+            "<span class='note'><b>Lưu ý:</b><br>"
+            "- <b>XZR (X31)</b> luôn bằng 0, không thể thay đổi.<br>"
+            "- RAM 32 bit, nhập ByteValue là 8 ký tự 0/1.<br>"
+            "- Chỉ WordValue dòng đầu mỗi word mới cho phép chỉnh sửa.<br>"
+            "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 4 từ 0 đến 508 (tương ứng với 128 dòng RAM).<br>"
+            "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và các nhau 4 byte<br>"
+            "- Các lệnh nhánh (B, CBZ, B.cond) trường #imm là số dòng nhảy, chiều dương hướng xuống.<br>"
+            "<hr>"
+            "<h3 style='color:#1976d2;'>Cú pháp các lệnh cơ bản</h3>"
+            "<ul>"
+            "<li><b>ADD, SUB, AND, ORR, EOR, ADDS, SUBS, ANDS:</b><br> <code>ADD Xd, Xn, Xm</code></li>"
+            "<li><b>ADDI, SUBI, ANDI, ORRI, EORI:</b><br> <code>ADDI Xd, Xn, #imm</code></li>"
+            "<li><b>LDUR, STUR:</b><br> <code>LDUR Xd, [Xn, #imm]</code></li>"
+            "<li><b>CBZ:</b><br> <code>CBZ Xn, #imm</code></li>"
+            "<li><b>B:</b><br> <code>B #imm</code></li>"
+            "<li><b>B.cond:</b><br> <code>B.EQ #imm</code> (các điều kiện: EQ, NE, CS, HS, CC, LO, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE)</li>"
+            "</ul>"
+            "<hr>"
+            "<i>Tác giả: Nguyễn Ngọc Tin, Nguyễn Gia Thịnh </i>"
+        )
+        text.setReadOnly(True)
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+        layout.addWidget(text)
+
+        dialog.exec_()
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = MainWindow()
