@@ -16,7 +16,7 @@ data = {
     'M2': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
     'M3': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
     'M4': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
-    'Flags': {'Control': '0', 'NZCVtmp': '0000', 'NZCV': '0000'},
+    'Flags': {'Control': '0', 'NZCVtmp': '0000', 'NZCV': '0000', 'Condition': '00000'},
     'SE': {'Inp': '0'},
     'ALUControl': {'ALUop': '0', 'Ins': '0'},
     'Control': {'Inp0': '0'},
@@ -179,6 +179,29 @@ def assemble_instruction(inst_str):
         imm = int(parts[3].lstrip('#'))
         opcode = 0b1111000100
         instr = (opcode << 22) | ((imm & 0xFFF) << 10) | (rn << 5) | rd
+    elif op.startswith('B.'):
+        cond_map = {
+            'B.EQ':  0b0000,
+            'B.NE':  0b0001,
+            'B.CS':  0b0010, 'B.HS': 0b0010,
+            'B.CC':  0b0011, 'B.LO': 0b0011,
+            'B.MI':  0b0100,
+            'B.PL':  0b0101,
+            'B.VS':  0b0110,
+            'B.VC':  0b0111,
+            'B.HI':  0b1000,
+            'B.LS':  0b1001,
+            'B.GE':  0b1010,
+            'B.LT':  0b1011,
+            'B.GT':  0b1100,
+            'B.LE':  0b1101,
+        }
+        imm = int(parts[1].lstrip('#'))
+        opcode = 0b01010100  # B.cond opcode
+        cond = cond_map.get(op)
+        if cond is None:
+            raise ValueError(f"Unsupported conditional branch: {op}")
+        instr = (opcode << 24) | ((imm & 0x7FFFF) << 5) | cond
     else:
         raise ValueError(f"assemble_instruction(): lệnh không hỗ trợ: {inst_str}")
 
@@ -236,7 +259,9 @@ def get_bits_for_path(block, ui = None):
         if inp in controls:
             return tuple(controls[inp].split(','))
         if inp[0:8] == '10110100':  # CBZ
-            return ('1', '0', '1', '1', '0', '0', '0', '0', '0', '01', '0')
+            return ('1', '0', '0', '1', '0', '0', '0', '0', '0', '01', '0')
+        if inp[0:8] == '01010100':  # B.cond
+            return ('0', '0', '1', '0', '0', '0', '0', '0', '0', '01', '0')
         if inp[0:6] == '000101':  # B
             return ('0', '1', '0', '0', '0', '0', '0', '0', '0', '00', '0')
         if inp[0:10] == '1001000100':  # ADDI
@@ -263,11 +288,11 @@ def get_bits_for_path(block, ui = None):
         opcode2= instr_binary[0][0:8]   
         opcode3 = instr_binary[0][0:6]     
         opcode4 = instr_binary[0][0:10]  
-        # Xác định vị trí và độ dài immediate theo định dạng D, CBZ, B
+        # Xác định vị trí và độ dài immediate
         if opcode1 in ('11111000010', '11111000000'):    # LDUR, STUR (D-type)
             # immediate bits [20:12] => indices [11:20) trong Python
             imm = instr_binary[0][11:20]
-        elif opcode2 == '10110100':  # CBZ (CB-type)
+        elif opcode2 in ('10110100', '01010100'):  # CBZ (CB-type), B.cond (CB-type)
             imm = instr_binary[0][8:27]
         elif opcode3 == '000101':     # B (B-type)
             imm = instr_binary[0][6:32]
@@ -379,22 +404,47 @@ def get_bits_for_path(block, ui = None):
         if control == '1':
             data['Flags']['NZCV'] = data['Flags']['NZCVtmp']
         
-            nzcv = data['Flags']['NZCV']  # string 4 ký tự, ví dụ "1010"
-            n, z, c, v = nzcv[0], nzcv[1], nzcv[2], nzcv[3]
+        nzcv = data['Flags']['NZCV']  # string 4 ký tự
+        n, z, c, v = nzcv[0], nzcv[1], nzcv[2], nzcv[3]
 
-            def highlight_flag(label, bit):
-                if bit == '1':
-                    label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
-                else:
-                    # reset về lightgray như mặc định
-                    label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
+        def highlight_flag(label, bit):
+            if bit == '1':
+                label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
+            else:
+                label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
 
-            highlight_flag(ui.n_flag, n)
-            highlight_flag(ui.z_flag, z)
-            highlight_flag(ui.c_flag, c)
-            highlight_flag(ui.v_flag, v)
-        zeroFlag = data['Flags']['NZCV'][1]
-        return (zeroFlag,)
+        highlight_flag(ui.n_flag, n)
+        highlight_flag(ui.z_flag, z)
+        highlight_flag(ui.c_flag, c)
+        highlight_flag(ui.v_flag, v)
+        cond_code = data['Flags']['Condition']  # string 5 bit, e.g. "01011"
+        # Chúng ta chỉ cần 4 bit thấp:
+        cond = int(cond_code[-4:], 2)
+
+        # Mapping cond → hàm kiểm tra
+        def cond_met(cond):
+            return {
+                0b0000: lambda: z,                  # EQ: Z == 1
+                0b0001: lambda: not z,              # NE: Z == 0
+                0b0010: lambda: c,                  # HS/CS: C == 1
+                0b0011: lambda: not c,              # LO/CC: C == 0
+                0b0100: lambda: n,                  # MI: N == 1
+                0b0101: lambda: not n,              # PL: N == 0
+                0b0110: lambda: v,                  # VS: V == 1
+                0b0111: lambda: not v,              # VC: V == 0
+                0b1000: lambda: c and not z,        # HI: C == 1 & Z == 0
+                0b1001: lambda: not c or z,         # LS: C == 0 or Z == 1
+                0b1010: lambda: n == v,             # GE: N == V
+                0b1011: lambda: n != v,             # LT: N != V
+                0b1100: lambda: not z and (n == v), # GT: Z == 0 & N == V
+                0b1101: lambda: z or (n != v),      # LE: Z == 1 or N != V
+            }.get(cond, lambda: False)()
+
+        # Tính xem có nhảy không
+        branch_taken = cond_met(cond)
+        data['Flags']['BranchTaken'] = '1' if branch_taken else '0'
+
+        return (branch_taken,)
     
     if block == 'SL2':
         inp = data['SL2']['Inp0'] 
@@ -419,7 +469,7 @@ def reset_data():
         'M2': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
         'M3': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
         'M4': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
-        'Flags': {'Control': '0', 'NZCVtmp': '0000', 'NZCV': '0000'},
+        'Flags': {'Control': '0', 'NZCVtmp': '0000', 'NZCV': '0000', 'Condition': '00000'},
         'SE': {'Inp': '0'},
         'ALUControl': {'ALUop': '0', 'Ins': '0'},
         'Control': {'Inp0': '0'},

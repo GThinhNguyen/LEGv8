@@ -208,6 +208,8 @@ class Ui_MainWindow(object):
         
         self.code_layout = QtWidgets.QVBoxLayout(self.code_frame)
         self.codeEditor = CodeEditor(self.code_frame)
+        font = QtGui.QFont("Consolas", 10)  # Thay bằng cỡ chữ bạn muốn
+        self.codeEditor.setFont(font)
         self.codeEditor.setObjectName("codeEditor")
         self.code_layout.addWidget(self.codeEditor)
         
