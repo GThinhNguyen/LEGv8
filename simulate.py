@@ -15,18 +15,18 @@ polygons = {
     'M1': np.array([[470, 480], [500, 580]]),
     'M2': np.array([[900, 550], [930, 650]]),
     'M3': np.array([[1690, 560], [1720, 660]]),  # 1490,1520 -> 1690,1720
-    'M4': np.array([[1630, 45], [1660, 145]]),   # 1430,1460 -> 1630,1660
+    'M4': np.array([[1630, -10], [1660, 90]]),   # 1430,1460 -> 1630,1660
 
     'SE': np.array([[680, 700], [780, 800]]),
-    'SL2': np.array([[940, 110], [1020, 190]]),
+    'SL2': np.array([[940, 60], [1020, 140]]),
     'ALUControl': np.array([[910, 770], [1010, 870]]),
-    'Control': np.array([[360, 220], [460, 440]]),
+    'Control': np.array([[360, 150], [460, 400]]),
 
     'ALU': np.array([[1120, 520], [1120, 600], [1000, 640], [1000, 570], [1030, 560], [1000, 550], [1000, 480]]),
-    'ADD2': np.array([[1180, 110], [1180, 145], [1120, 165], [1120, 132.5], [1135, 127.5], [1120, 122.5], [1120, 90]]),
-    'ADD1': np.array([[240, 50], [240, 85], [180, 105], [180, 72.5], [195, 67.5], [180, 62.5], [180, 30]]),
+    'ADD2': np.array([[1180, 60], [1180, 95], [1120, 115], [1120, 82.5], [1135, 77.5], [1120, 72.5], [1120, 40]]),
+    'ADD1': np.array([[240, -10], [240, 25], [180, 45], [180, 12.5], [195, 7.5], [180, 2.5], [180, -30]]),
 
-    'OR': np.array([[1550, 240], [1610, 320]]),   # 1350,1410 -> 1550,1610
+    'OR': np.array([[1540, 360], [1610, 440]]),   # 1350,1410 -> 1550,1610
     'AND1': np.array([[1380, 360], [1480, 440]]), # 1350,1410 -> 1550,1610
     'AND2': np.array([[1380, 480], [1480, 560]]), # 1350,1410 -> 1550,1610
 }
@@ -34,54 +34,54 @@ polygons = {
 # Tọa độ các điểm dựa vào connection_map và lines
 points = {
     'P1': (-160, 530),         # Đầu vào của IM (L59)
-    'P2': (210, 550),          # Nút giao L29, L30, L31, L32, L33, L34, L35, L36, L39
-    'P3': (360, 590),          # Nút giao L36, L37, L38
-    'P4': (600, 750),          # Nút giao L39, L40, L53
+    'P2': (210, 500),          # Nút giao L29, L30, L31, L32, L33, L34, L35, L36, L39
+    'P3': (360, 560),          # Nút giao L36, L37, L38
+    'P4': (440, 750),          # Nút giao L39, L40, L53
     'P5': (810, 570),          # Nút giao L42, L43, L44
     'P6': (850, 630),          # Nút giao L54, L55, L56
-    'P7': (1150, 570),         # Nút giao L45, L46, L47
-    'P8': (-160, 100),         # Nút giao L1, L2, L5
+    'P7': (1160, 580),         # Nút giao L45, L46, L47
+    'P8': (-160, 50),          # Nút giao L1, L2, L5
 }
 
 lines = {
-    'L18': np.array([[420, 220], [1705, 220], [1705, 550]]),  # 1505+200
-    'L14': np.array([[430, 242], [1550, 242]]),               # 1350+200
-    'L15': np.array([[440, 264], [1340, 264], [1340, 380], [1380, 380]]),  # 1270+200,1275+200
-    'L16': np.array([[450, 286], [1300, 286], [1300, 500], [1380, 500]]),  # 1250+200,1270+200
-    'L17': np.array([[460, 308], [1260, 308], [1260, 620]]),               # 1240+200
-    'L19': np.array([[460, 330], [1220, 330], [1220, 620]]),               # 1200+200
-    'L20': np.array([[460, 352], [1080, 352], [1080, 400]]),
-    'L22': np.array([[450, 374], [960, 374], [960, 750]]),
-    'L21': np.array([[440, 396], [915, 396], [915, 550]]),
-    'L23': np.array([[430, 418], [685, 418], [685, 450]]),
-    'L13': np.array([[420, 440], [485, 440], [485, 480]]),
+    'L18': np.array([[420, 150], [1705, 150], [1705, 560]]),  # 1505+200
+    'L14': np.array([[430, 175], [1480, 175], [1480, 370], [1550, 370]]),               # 1350+200
+    'L15': np.array([[440, 200], [1340, 200], [1340, 380], [1380, 380]]),  # 1270+200,1275+200
+    'L16': np.array([[450, 225], [1300, 225], [1300, 500], [1380, 500]]),  # 1250+200,1270+200
+    'L17': np.array([[460, 250], [1260, 250], [1260, 620]]),               # 1240+200
+    'L19': np.array([[460, 275], [1220, 275], [1220, 620]]),               # 1200+200
+    'L20': np.array([[460, 300], [1080, 300], [1080, 400]]),
+    'L22': np.array([[450, 325], [960, 325], [960, 770]]),
+    'L21': np.array([[440, 350], [915, 350], [915, 550]]),
+    'L23': np.array([[430, 375], [685, 375], [685, 450]]),
+    'L13': np.array([[420, 400], [485, 400], [485, 480]]),
 
-    'L24': np.array([[1010, 820], [1070, 820], [1070, 600]]),
+    'L24': np.array([[1010, 820], [1070, 820], [1070, 620]]),
 
     'L25': np.array([[1120, 540], [1380, 540]]),              # 1250+200
-    'L26': np.array([[1440, 400], [1480, 400], [1480, 280], [1560, 280]]),  # 1320+200,1325+200,1350+200
-    'L27': np.array([[1605, 280], [1645, 280], [1645, 145]]),               # 1410+200,1440+200
-    'L28': np.array([[1440, 520], [1520, 520], [1520, 315], [1560, 315]]),  # 1320+200,1330+200,1350+200
+    'L26': np.array([[1440, 400], [1550, 400]]),  # 1320+200,1325+200,1350+200
+    'L27': np.array([[1605, 400], [1645, 400], [1645, 100]]),               # 1410+200,1440+200
+    'L28': np.array([[1440, 520], [1480, 520], [1480, 430], [1550, 430]]),  # 1320+200,1330+200,1350+200
 
     'L45': np.array([[1120, 580], [1160, 580]]),              # 1230+200
-    'L46': np.array([[1150, 570], [1150, 650], [1200, 650]]), # 1200+200
+    'L46': np.array([[1160, 580], [1160, 650], [1200, 650]]), # 1200+200
     'L47': np.array([[1160, 580], [1690, 580]]),              # 1230+200,1490+200
 
-    'L48': np.array([[1070, 490], [1070, 450]]),
+    'L48': np.array([[1070, 500], [1070, 460]]),
 
-    'L29': np.array([[30, 550], [210, 550]]),
+    'L29': np.array([[30, 500], [210, 500]]),
     'L30': np.array([[210, 550], [210, 500]]),
     'L31': np.array([[210, 500], [210, 470]]),
     'L32': np.array([[210, 470], [210, 330], [360, 330]]),
     'L33': np.array([[210, 470], [600, 470]]),
     'L34': np.array([[210, 500], [470, 500]]),
     'L35': np.array([[210, 540], [210, 590]]),
-    'L36': np.array([[210, 590], [360, 590]]),
-    'L37': np.array([[360, 590], [360, 560], [470, 560]]),
-    'L38': np.array([[360, 590], [600, 590]]),
-    'L39': np.array([[210, 590], [210, 750], [600, 750]]),
-    'L40': np.array([[600, 750], [660, 750]]),
-    'L53': np.array([[600, 740], [600, 820], [910, 820]]),
+    'L36': np.array([[210, 560], [360, 560]]),
+    'L37': np.array([[360, 560], [470, 560]]),
+    'L38': np.array([[360, 560], [360, 590], [600, 590]]),
+    'L39': np.array([[210, 590], [210, 750], [440, 750]]),
+    'L40': np.array([[440, 750], [680, 750]]),
+    'L53': np.array([[440, 750], [440, 820], [910, 820]]),
 
     'L41': np.array([[770, 500], [1000, 500]]),
     'L42': np.array([[770, 570], [810, 570]]),
@@ -92,28 +92,28 @@ lines = {
 
     'L50': np.array([[500, 530], [600, 530]]),
     'L51': np.array([[930, 600], [1000, 600]]),
-    'L52': np.array([[1720, 600], [1740, 600], [1740, 890], [570, 890], [570, 620], [600, 620]]),  # 1520+200,1540+200
-    'L9a': np.array([[1660, 90], [1740, 90], [1740, 10], [ -225, 10], [ -225, 520]]),            # 1460+200,1540+200
+    'L52': np.array([[1720, 610], [1740, 610], [1740, 890], [360, 890], [360, 630], [600, 630]]),  # 1520+200,1540+200
+    'L9a': np.array([[1660, 40], [1740, 40], [1740, -50], [ -225, -50], [ -225, 520]]),            # 1460+200,1540+200
 
     'L54': np.array([[770, 750], [850, 750], [850, 630]]),
     'L55': np.array([[850, 630], [900, 630]]),
-    'L56': np.array([[850, 630], [850, 150], [920, 150]]),
+    'L56': np.array([[850, 630], [850, 100], [940, 100]]),
 
-    'L57': np.array([[1020, 150], [1120, 150]]),
+    'L57': np.array([[1020, 100], [1120, 100]]),
 
     'L60': np.array([[1160, 420], [1380, 420]]),              # 1260+200
-    'L61': np.array([[360, 590], [360, 420], [1000, 420]]),
+    'L61': np.array([[360, 560], [360, 420], [1000, 420]]),
 
     'L58': np.array([[-200, 530], [-160, 530]]),
     'L59': np.array([[-160, 530], [-120, 530]]),
-    'L1': np.array([[-160, 530], [-160, 100]]),
-    'L5': np.array([[-160, 100], [1120, 100]]),
-    'L2': np.array([[-160, 100], [-160, 40], [170, 40]]),
+    'L1': np.array([[-160, 530], [-160, 50]]),
+    'L5': np.array([[-160, 50], [1120, 50]]),
+    'L2': np.array([[-160, 50], [-160, -20], [180, -20]]),
 
-    'L4': np.array([[120, 80], [170, 80]]),
+    'L4': np.array([[120, 30], [180, 30]]),
 
-    'L8': np.array([[250, 70], [1620, 70]]),                  # 1420+200
-    'L9b': np.array([[1180, 125], [1610, 125]]) 
+    'L8': np.array([[240, 10], [1630, 10]]),                  # 1420+200
+    'L9b': np.array([[1180, 70], [1630, 70]]) 
                                 # 1410+200
 }
 
@@ -302,14 +302,16 @@ def show_name(ax, polygons_dict):
                     ha='left', va='center', zorder=200)
             
     # Thêm các nhãn instruction field tại các vị trí tương ứng, tăng x 4, giảm y 10
-    ax.text(100 + 4, 550 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(210 + 4, 590 - 10, "Inst[4-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(100 + 4, 500 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 560 - 10, "Inst[4-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
     ax.text(210 + 4, 500 - 10, "Inst[20-16]", color='black', fontsize=9, ha='left', va='center', zorder=2)
     ax.text(210 + 4, 470 - 10, "Inst[9-5]", color='black', fontsize=9, ha='left', va='center', zorder=2)
     ax.text(210 + 4, 330 - 10, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
     ax.text(210 + 4, 750 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(600 + 4, 750 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(600 + 4, 820 - 10, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(440 + 4, 750 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(440 + 4, 820 - 10, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(120 - 5, 30 - 10, "4", color='black', fontsize=9, ha='left', va='center', zorder=2)
+
 
 
 def show_background(ax, path):
@@ -353,11 +355,13 @@ def show_polygons(ax, polygons_dict):
                 arc = patches.Arc((center_x, center_y), height, height, angle=0,
                                   theta1=theta1, theta2=theta2, linewidth=2, edgecolor='red', zorder=5)
                 ax.add_patch(arc)
+
+                
             elif name in ['OR']:
                 # Đường cong bên trái (dạng OR gate)
                 # Vẽ một đường cong lồi bên trái, dùng Bezier
                 p0 = [left, bottom]
-                p1 = [left + width * 0.25, bottom + height * 0.5]
+                p1 = [left + width * 0.5, bottom + height * 0.5]
                 p2 = [left, top]
                 bezier_x = []
                 bezier_y = []
@@ -367,22 +371,31 @@ def show_polygons(ax, polygons_dict):
                     bezier_x.append(x)
                     bezier_y.append(y)
                 ax.plot(bezier_x, bezier_y, color='red', lw=2, zorder=5)
+                # Đường cong trên bên phải (đi từ phải sang trái)
+                p0_top = [left, top]
+                p1_top = [left + width * 0.7, top]
+                p2_top = [left + width, bottom + height * 0.5]
+                bezier_x_top = []
+                bezier_y_top = []
+                for t in np.linspace(0, 1, 100):
+                    x = (1 - t) ** 2 * p0_top[0] + 2 * (1 - t) * t * p1_top[0] + t ** 2 * p2_top[0]
+                    y = (1 - t) ** 2 * p0_top[1] + 2 * (1 - t) * t * p1_top[1] + t ** 2 * p2_top[1]
+                    bezier_x_top.append(x)
+                    bezier_y_top.append(y)
+                ax.plot(bezier_x_top, bezier_y_top, color='red', lw=2, zorder=5)
 
-                # Đường cong bên phải (nửa hình tròn)
-                rect_width = width * 0.2
-                center_x = left + rect_width
-                center_y = bottom + height / 2
-                theta = np.linspace(-np.pi/2, np.pi/2, 100)
-                arc_x = center_x + (height/2) * np.cos(theta)
-                arc_y = center_y + (height/2) * np.sin(theta)
-                ax.plot(arc_x, arc_y, color='red', lw=2, zorder=5)
-                # Nối đường cong với nửa đường tròn bằng đoạn thẳng
-                # Điểm cuối của đường cong Bezier (p2)
-                # Điểm đầu của nửa hình tròn (arc_x[0], arc_y[0])
-                # Nối điểm đầu của đường cong Bezier với điểm đầu của nửa hình tròn
-                ax.plot([bezier_x[0], arc_x[0]], [bezier_y[0], arc_y[0]], color='red', lw=2, zorder=5)
-                # Nối điểm cuối của đường cong Bezier với điểm cuối của nửa hình tròn
-                ax.plot([bezier_x[-1], arc_x[-1]], [bezier_y[-1], arc_y[-1]], color='red', lw=2, zorder=5)
+                # Đường cong dưới bên phải (đi từ phải sang trái)
+                p0_bot = [left, bottom]
+                p1_bot = [left + width * 0.7, bottom]
+                p2_bot = [left + width, bottom + height * 0.5]
+                bezier_x_bot = []
+                bezier_y_bot = []
+                for t in np.linspace(0, 1, 100):
+                    x = (1 - t) ** 2 * p0_bot[0] + 2 * (1 - t) * t * p1_bot[0] + t ** 2 * p2_bot[0]
+                    y = (1 - t) ** 2 * p0_bot[1] + 2 * (1 - t) * t * p1_bot[1] + t ** 2 * p2_bot[1]
+                    bezier_x_bot.append(x)
+                    bezier_y_bot.append(y)
+                ax.plot(bezier_x_bot, bezier_y_bot, color='red', lw=2, zorder=5)
 
 
             elif name in rounded_rects:
@@ -439,8 +452,7 @@ def show_points(ax, point_coords):
         ax.plot(x, y, 'o', color='red', markersize=3, zorder=20)
 
 
-
-def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=2):
+def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=30):
     import matplotlib.patches as patches
     import matplotlib.animation as animation
 
@@ -498,6 +510,8 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             sq = ax.existing_squares[key]
             sq['distance_travelled'] = 0.0
             sq['text'].set_text(bit_str)
+            sq['text'].set_weight('bold')  # Thêm dòng này
+
             # Cập nhật lại kích thước ô vuông cho khít text mới
             renderer = ax.figure.canvas.get_renderer()
             sq['text'].set_text(bit_str)
@@ -518,7 +532,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             move_squares.append(sq)
 
         else:
-            temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11)
+            temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11, weight='bold')            
             renderer = ax.figure.canvas.get_renderer()
             bbox = temp_text.get_window_extent(renderer=renderer)
             inv = ax.transData.inverted()
@@ -534,11 +548,13 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
 
             rect = patches.Rectangle(
-                (patch_center_x - width, patch_center_y), width, height, color='blue', zorder=100
+                (patch_center_x - width, patch_center_y), width, height, color='brown', zorder=100
             )
             ax.add_patch(rect)
             text = ax.text(
-                patch_center_x - width/2, patch_center_y + height/2, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=101
+                patch_center_x - width/2, patch_center_y + height/2, bit_str, 
+                color='white', ha='center', va='center', fontsize=10, zorder=101,
+                weight='bold'  # Thêm dòng này
             )
             sq = {'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key}
             ax.existing_squares[key] = sq
@@ -591,7 +607,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             active_patches.append(sq['text'])
         return active_patches
 
-    ani = animation.FuncAnimation(ax.figure, update, interval=10, blit=False, cache_frame_data=False)
+    ani = animation.FuncAnimation(ax.figure, update, interval=2, blit=False, cache_frame_data=False)
     return ani
 
 def logic_step_from_block(start_block, lines, line_next, ui):
