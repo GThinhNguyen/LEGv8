@@ -218,8 +218,10 @@ def get_bits_for_path(block, ui = None):
             return (data[block]['Inp0'],)
         else:
             return (data[block]['Inp1'],)
-    if block in ['P1', 'P3', 'P5', 'P6', 'P7', 'P8']:
+    if block in ['P1', 'P5', 'P6', 'P7', 'P8']:
         return (data[block]['Inp0'], data[block]['Inp0'])
+    if block == 'P3':
+        return (data[block]['Inp0'], data[block]['Inp0'], data[block]['Inp0'])  
     if block == 'P4':
         instr = data['P4']['Inp0']
         instr_binary = assemble_instruction(instr)
@@ -442,9 +444,8 @@ def get_bits_for_path(block, ui = None):
 
         # Tính xem có nhảy không
         branch_taken = cond_met(cond)
-        data['Flags']['BranchTaken'] = '1' if branch_taken else '0'
 
-        return (branch_taken,)
+        return (1 if branch_taken else 0,)
     
     if block == 'SL2':
         inp = data['SL2']['Inp0'] 

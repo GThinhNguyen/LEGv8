@@ -144,7 +144,7 @@ line_next = {
     # Points to lines
     'P1': ['L59', 'L1'],
     'P2': ['L32', 'L33', 'L34', 'L36', 'L39'],
-    'P3': ['L37', 'L38'],
+    'P3': ['L37', 'L38', 'L61'],
     'P4': ['L40', 'L53'],
     'P5': ['L43', 'L44'],
     'P6': ['L55', 'L56'],
@@ -199,6 +199,8 @@ connection_map = {
     'L58': [{'to': 'P1', 'port': 'Inp0', 'value': '0'}],
     'L59': [{'to': 'IM', 'port': 'ReadAddress', 'value': '0'}],
     'L60': [{'to': 'AND1', 'port': 'Inp1', 'value': '0'}],
+    'L61': [{'to': 'Flags', 'port': 'Condition', 'value': '0'}],
+    
 
     'L1':  [{'to': 'P8', 'port': 'Inp0', 'value': '0'}],
     'L2':  [{'to': 'ADD1', 'port': 'Inp0', 'value': '0'}],
