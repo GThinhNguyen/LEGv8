@@ -232,7 +232,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
             rd= bits.data['Reg']['WriteRegister']
             rd_value = bits.data['Reg']['WriteData']
-            self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+            if int(rd, 2) != 31:  # XZR (X31) luôn bằng 0, không cần cập nhật
+                self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
 
         self.canvas.draw_idle()
         self.current_step += 1
@@ -278,8 +279,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def show_instruction(self):
         dialog = QtWidgets.QDialog(self)
         dialog.setWindowTitle("Hướng dẫn sử dụng")
-        dialog.resize(1000, 800)  # Chỉnh size tại đây
-
+        dialog.resize(1000, 850)  # Chỉnh size tại đây
+        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
         text = QtWidgets.QTextBrowser(dialog)
         text.setHtml(
             "<style>body {font-size:24px;} code {font-size:17px; color:#1976d2;} h2 {font-size:26px;} li {font-size:16px;margin-bottom:8px;} .note {font-size:16px;}</style>"
@@ -312,7 +313,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "<li><b>B.cond:</b><br> <code>B.EQ #imm</code> (các điều kiện: EQ, NE, CS, HS, CC, LO, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE)</li>"
             "</ul>"
             "<hr>"
-            "<i>Tác giả: Nguyễn Ngọc Tin, Nguyễn Gia Thịnh </i>"
+            "<i>Giáo viên hướng dẫn: Phạm Tuấn Sơn </i><br>"
+            "<i>Sinh viên: Nguyễn Ngọc Tin, Nguyễn Gia Thịnh </i>"
         )
         text.setReadOnly(True)
 
