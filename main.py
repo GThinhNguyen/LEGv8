@@ -19,6 +19,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
         self.current_line_idx = 0
         self.current_step = 0
+        self.ui.registerShow.itemChanged.connect(self.handle_register_item_changed)
+        self.ui.registerShow.cellClicked.connect(self.save_old_register_value)
         self.ui.ramTable.itemChanged.connect(self.handle_ram_item_changed)
         self.ui.ramTable.cellClicked.connect(self.save_old_value)
         self._old_ram_value = ""
@@ -69,7 +71,24 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(10):  # Chỉ gán giá trị cho 10 thanh ghi đầu
             self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(str(i + 1)))  # Giá trị từ 1 đến 10
 
-
+    def save_old_register_value(self, row, col):
+        item = self.ui.registerShow.item(row, col)
+        self._old_register_value = item.text() if item else "0"
+    
+    def handle_register_item_changed(self, item):
+        row = item.row()
+        col = item.column()
+        if col == 0 and row != 31:
+            try:
+                val = int(item.text())
+                if not (-2147483648 <= val <= 2147483647):
+                    raise ValueError
+            except Exception:
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ cho phép nhập số nguyên có dấu 32 bit (-2147483648 đến 2147483647).")
+                # Quay lại giá trị trước đó
+                item.setText(getattr(self, "_old_register_value", "0"))
+                return
+    
     def highlight_line(self, line_number):
         """Tô vàng dòng line_number (0-based) trong codeEditor."""
         editor = self.ui.codeEditor
@@ -164,9 +183,18 @@ class MainWindow(QtWidgets.QMainWindow):
         max_loops = 10000
         while self.current_line_idx < total_lines:
             if loop_count >= max_loops:
-                QtWidgets.QMessageBox.critical(self, "Lỗi", "Chương trình vượt quá 100 vòng lặp! Có thể bị lặp vô hạn.")
+                QtWidgets.QMessageBox.critical(self, "Lỗi", "Chương trình vượt quá 10000 vòng lặp! Có thể bị lặp vô hạn.")
                 break
             while self.current_step < len(order):
+                # Kiểm tra lỗi "Khong co lenh" trước khi xử lý từng block
+                if bits.data['P2']['Inp0'] == 'Khong co lenh':
+                    QtWidgets.QMessageBox.warning(self, "Lỗi", "Không có lệnh tại địa chỉ này!\nDừng mô phỏng.")
+                    self.current_step = 0
+                    self.current_line_idx = 0
+                    bits.reset_data()
+                    self.highlight_line(self.current_line_idx)
+                    self.canvas.draw_idle()
+                    return
                 block = order[self.current_step]
                 # Gọi hàm chỉ xử lý logic, không tạo animation
                 simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
@@ -209,7 +237,14 @@ class MainWindow(QtWidgets.QMainWindow):
             simulate.clear_animated_squares(self.ax) #chạy hết 1 vòng thì xóa các khối vuông
             self.current_step = 0
             self.current_line_idx = int(bits.data['PC']['Inp0'])//4
-
+        if bits.data['P2']['Inp0'] == 'Khong co lenh':
+            QtWidgets.QMessageBox.warning(self, "Lỗi", "Không có lệnh tại địa chỉ này!\nDừng mô phỏng.")
+            self.current_step = 0
+            self.current_line_idx = 0
+            bits.reset_data()
+            self.highlight_line(self.current_line_idx)
+            self.canvas.draw_idle()
+            return
         if self.current_line_idx >= total_lines:
             QtWidgets.QMessageBox.information(self, "Kết thúc",
                 "Đã chạy hết chương trình!")
@@ -297,23 +332,25 @@ class MainWindow(QtWidgets.QMainWindow):
             "<span class='note'><b>Lưu ý:</b><br>"
             "- <b>XZR (X31)</b> luôn bằng 0, không thể thay đổi.<br>"
             "- RAM 32 bit, nhập ByteValue là 8 ký tự 0/1.<br>"
+            "- Thanh ghi 32 bit, nhập giá trị từ -2147483648 đến 2147483647. Kết quả phép tính cho phép bị tràn số.<br>"
             "- Chỉ WordValue dòng đầu mỗi word mới cho phép chỉnh sửa.<br>"
             "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 4 từ 0 đến 508 (tương ứng với 128 dòng RAM).<br>"
             "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và cách nhau 4 byte.<br>"
             "- Các lệnh nhánh (B, CBZ, B.cond) trường #imm là số dòng nhảy, chiều dương hướng xuống.<br>"
+            "- Có thể dùng dấu <code>//</code> để chú thích trong code, nhưng phải đảm bảo dòng nào cũng có code.</span>"
             "<hr>"
             "<h3 style='color:#1976d2;'>Cú pháp các lệnh cơ bản</h3>"
             "<ul>"
             "<li><b>ADD, SUB, AND, ORR, EOR, ADDS, SUBS, ANDS:</b><br> <code>ADD Xd, Xn, Xm</code></li>"
-            "<li><b>ADDI, SUBI, ANDI, ORRI, EORI:</b><br> <code>ADDI Xd, Xn, #imm</code></li>"
+            "<li><b>ADDI, SUBI, ANDI, ORRI, EORI, ADDIS, SUBIS, ANDIS:</b><br> <code>ADDI Xd, Xn, #imm</code></li>"
             "<li><b>LDUR, STUR:</b><br> <code>LDUR Xd, [Xn, #imm]</code></li>"
             "<li><b>CBZ:</b><br> <code>CBZ Xn, #imm</code></li>"
             "<li><b>B:</b><br> <code>B #imm</code></li>"
-            "<li><b>B.cond:</b><br> <code>B.EQ #imm</code> (các điều kiện: EQ, NE, CS, HS, CC, LO, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE)</li>"
+            "<li><b>B.cond:</b><br> <code>B.EQ #imm</code> (các điều kiện: EQ, NE, MI, PL, VS, VC, GE, LT, GT, LE)</li>"
             "</ul>"
             "<hr>"
             "<i>Giáo viên hướng dẫn: Phạm Tuấn Sơn </i><br>"
-            "<i>Sinh viên: Nguyễn Ngọc Tin, Nguyễn Gia Thịnh </i>"
+            "<i>Sinh viên thực hiện: Nguyễn Ngọc Tin, Nguyễn Gia Thịnh </i>"
         )
         text.setReadOnly(True)
 
