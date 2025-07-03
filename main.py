@@ -161,8 +161,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_line_idx = 0
 
         loop_count = 0
-        max_loops = 100
-
+        max_loops = 10000
         while self.current_line_idx < total_lines:
             if loop_count >= max_loops:
                 QtWidgets.QMessageBox.critical(self, "Lỗi", "Chương trình vượt quá 100 vòng lặp! Có thể bị lặp vô hạn.")

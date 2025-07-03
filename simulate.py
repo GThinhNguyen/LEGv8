@@ -463,6 +463,30 @@ def show_points(ax, point_coords):
     for name, (x, y) in point_coords.items():
         ax.plot(x, y, 'o', color='red', markersize=3, zorder=5)
 
+def add2(bit_data, lines_list):
+    """
+    Thêm subscript 2 cho các line nhất định
+    bit_data: có thể là string hoặc tuple/list
+    lines_list: danh sách các line names
+    """
+    # Danh sách các line cần thêm subscript 2
+    lines_need_subscript = {'L30', 'L31', 'L32', 'L33', 'L34', 'L35', 'L36', 'L37', 'L38', 'L53', 'L50', 'L61'}
+    
+    # Nếu bit_data là tuple/list, xử lý từng phần tử
+    if isinstance(bit_data, (tuple, list)):
+        result = []
+        for i, bit_str in enumerate(bit_data):
+            if i < len(lines_list) and lines_list[i] in lines_need_subscript:
+                result.append(f"{bit_str}$_2$")
+            else:
+                result.append(str(bit_str))
+        return result
+    else:
+        # Nếu bit_data là string, kiểm tra line đầu tiên
+        if lines_list and lines_list[0] in lines_need_subscript:
+            return f"{bit_data}$_2$"
+        else:
+            return str(bit_data)
 
 def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=30):
     import matplotlib.patches as patches
@@ -506,6 +530,8 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
     def spawn_square(path, to_key, bit_str):
         key = (start_block, to_key)
+        display_bit_str = add2(bit_str, [to_key])  # Chỉ format cho hiển thị
+
         # Nếu start_block là point, xóa các square có đích là point này trước khi spawn mới
         if start_block in points:
             remove_keys = [
@@ -521,7 +547,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
         if key in ax.existing_squares:
             sq = ax.existing_squares[key]
             sq['distance_travelled'] = 0.0
-            sq['text'].set_text(bit_str)
+            sq['text'].set_text(display_bit_str)
             sq['text'].set_weight('bold')  # Thêm dòng này
 
             # Cập nhật lại kích thước ô vuông cho khít text mới
@@ -544,7 +570,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             move_squares.append(sq)
 
         else:
-            temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=10, weight='bold')            
+            temp_text = ax.text(0, 0, display_bit_str, color='white', ha='center', va='center', fontsize=10, zorder=10, weight='bold')            
             renderer = ax.figure.canvas.get_renderer()
             bbox = temp_text.get_window_extent(renderer=renderer)
             inv = ax.transData.inverted()
@@ -584,7 +610,8 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
                 bit_str = bit_tuple[-1]
         else:
             bit_str = str(bit_tuple)
-        spawn_square(next_path, next_name, bit_str)
+        display_bit_str = add2(bit_str, [next_name])        
+        spawn_square(next_path, next_name, display_bit_str)
         spawned.add(next_name)
         
 
