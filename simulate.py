@@ -10,7 +10,7 @@ polygons = {
     'IM': np.array([[-120, 470], [ 30, 630]]),     # 40-100, 180-100
     'Reg': np.array([[600, 450], [770, 690]]),
     'Mem': np.array([[1200, 620], [1350, 800]]),  # 1200,1300 -> 1400,1500
-    'Flags': np.array([[1000, 400], [1160, 440]]),
+    'Flags': np.array([[1030, 400], [1190, 440]]),
 
     'M1': np.array([[470, 480], [500, 580]]),
     'M2': np.array([[900, 550], [930, 650]]),
@@ -86,7 +86,7 @@ lines = {
     'L41': np.array([[770, 500], [1000, 500]]),
     'L42': np.array([[770, 570], [810, 570]]),
     'L43': np.array([[810, 570], [900, 570]]),
-    'L44': np.array([[810, 570], [810, 690], [1200, 690]]),   # 1200+200
+    'L44': np.array([[810, 570], [810, 700], [1200, 700]]),   # 1200+200
 
     'L49': np.array([[1350, 640], [1690, 640]]),              # 1300+200,1490+200
 
@@ -101,8 +101,8 @@ lines = {
 
     'L57': np.array([[1020, 100], [1120, 100]]),
 
-    'L60': np.array([[1160, 420], [1380, 420]]),              # 1260+200
-    'L61': np.array([[360, 560], [360, 420], [1000, 420]]),
+    'L60': np.array([[1190, 420], [1380, 420]]),              # 1260+200
+    'L61': np.array([[360, 560], [360, 420], [1030, 420]]),
 
     'L58': np.array([[-200, 530], [-160, 530]]),
     'L59': np.array([[-160, 530], [-120, 530]]),
@@ -246,23 +246,23 @@ def show_name(ax, polygons_dict):
             bottom, top = min(y0, y1), max(y0, y1)
             cx, cy = (left + right) / 2, (bottom + top) / 2
             if name in rects:
-                ax.text(right - 3, top - 3, format_multiline(display_name), color='black', fontsize=11, ha='right', va='bottom', zorder=200, linespacing=0.8)
+                ax.text(right - 3, top - 3, format_multiline(display_name), color='black', fontsize=11, ha='right', va='bottom', zorder=3, linespacing=0.8)
             elif name in ellipses:
-                ax.text(cx, cy, format_multiline(display_name), color='black', fontsize=11, ha='center', va='center', zorder=200, linespacing=0.8)
+                ax.text(cx, cy, format_multiline(display_name), color='black', fontsize=11, ha='center', va='center', zorder=3, linespacing=0.8)
             elif name.startswith('M') and name in rounded_rects:
-                ax.text(cx, bottom + 30, '0', color='black', fontsize=11, ha='center', va='bottom', zorder=200)
-                ax.text(cx, top - 30, '1', color='black', fontsize=11, ha='center', va='top', zorder=200)
+                ax.text(cx, bottom + 30, '0', color='black', fontsize=11, ha='center', va='bottom', zorder=3)
+                ax.text(cx, top - 30, '1', color='black', fontsize=11, ha='center', va='top', zorder=3)
         elif name == 'ALU':
             poly_alu = np.array(polygons_dict['ALU'])
             min_x, max_x = np.min(poly_alu[:, 0]), np.max(poly_alu[:, 0])
             min_y, max_y = np.min(poly_alu[:, 1]), np.max(poly_alu[:, 1])
             cx_alu = (min_x + max_x) / 2
             cy_alu = (min_y + max_y) / 2
-            ax.text(cx_alu, cy_alu, format_multiline('ALU'), color='black', fontsize=11, ha='center', va='center', zorder=200, linespacing=0.8)
+            ax.text(cx_alu, cy_alu + 20, format_multiline('ALU'), color='black', fontsize=11, ha='center', va='center', zorder=3, linespacing=0.8)
 
     # Nhãn phụ cho IM
-    ax.text(30 - 3, 470 + 3, "Instruction\n[31-0]", color='black', fontsize=9, ha='right', va='top', zorder=200, linespacing=0.8)
-    ax.text(-120 + 3, 520 - 3, "Read\naddress", color='black', fontsize=9, ha='left', va='top', zorder=200, linespacing=0.8)
+    ax.text(30 - 3, 470 + 3, "Instruction\n[31-0]", color='black', fontsize=9, ha='right', va='top', zorder=2, linespacing=0.8)
+    ax.text(-120 + 3, 520 - 3, "Read\naddress", color='black', fontsize=9, ha='left', va='top', zorder=2, linespacing=0.8)
 
     # Nhãn cho Reg
     reg_left, reg_right = 600, 770
@@ -273,21 +273,21 @@ def show_name(ax, polygons_dict):
         ("Write data", 635)
     ]
     for label, y in reg_labels_left:
-        ax.text(reg_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=200, linespacing=0.8)
+        ax.text(reg_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=2, linespacing=0.8)
     reg_labels_right = [("Read\ndata 1", 500), ("Read\ndata 2", 570)]
     for label, y in reg_labels_right:
-        ax.text(reg_right - 3, y, label, color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+        ax.text(reg_right - 3, y, label, color='black', fontsize=9, ha='right', va='center', zorder=2, linespacing=0.8)
 
     # Nhãn cho Mem
     mem_left, mem_right = polygons_dict['Mem'][0][0], polygons_dict['Mem'][1][0]
     mem_labels_left = [("Address", 650), ("Write\ndata", 700)]
     for label, y in mem_labels_left:
-        ax.text(mem_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=200, linespacing=0.8)
-    ax.text(mem_right - 3, 640, "Read\ndata", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+        ax.text(mem_left + 3, y, label, color='black', fontsize=9, ha='left', va='center', zorder=2, linespacing=0.8)
+    ax.text(mem_right - 3, 640, "Read\ndata", color='black', fontsize=9, ha='right', va='center', zorder=2, linespacing=0.8)
 
     # Nhãn cho ALU (Zero)
     alu_zero_x, alu_zero_y = polygons_dict.get('ALU', np.array([[0,0]]))[0]
-    ax.text(alu_zero_x - 3, 520, "Zero", color='black', fontsize=9, ha='right', va='center', zorder=200, linespacing=0.8)
+    ax.text(alu_zero_x - 3, 540, "Zero", color='black', fontsize=9, ha='right', va='center', zorder=2, linespacing=0.8)
 
     # Hiển thị tên các cổng đầu ra của Control (bên phải, căn trái)
     control_right = polygons_dict['Control'][1][0]
@@ -299,18 +299,18 @@ def show_name(ax, polygons_dict):
     if len(control_lines) == len(control_ports):
         for port, line in zip(control_ports, control_lines):
             ax.text(control_right + 10, line[0][1] - 7, port, color='black', fontsize=9,
-                    ha='left', va='center', zorder=200)
+                    ha='left', va='center', zorder=2)
             
     # Thêm các nhãn instruction field tại các vị trí tương ứng, tăng x 4, giảm y 10
-    ax.text(100 + 4, 500 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(210 + 4, 560 - 10, "Inst[4-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(210 + 4, 500 - 10, "Inst[20-16]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(210 + 4, 470 - 10, "Inst[9-5]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(210 + 4, 330 - 10, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(210 + 4, 750 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(440 + 4, 750 - 10, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(440 + 4, 820 - 10, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
-    ax.text(120 - 5, 30 - 10, "4", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(100 + 4, 500 - 12, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 560 - 12, "Inst[4-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 500 - 12, "Inst[20-16]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 470 - 12, "Inst[9-5]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 330 - 12, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(210 + 4, 750 - 12, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(440 + 4, 750 - 12, "Inst[31-0]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(440 + 4, 820 - 12, "Inst[31-21]", color='black', fontsize=9, ha='left', va='center', zorder=2)
+    ax.text(120 - 4, 30 - 12, "4", color='black', fontsize=9, ha='left', va='center', zorder=2)
 
 
 
@@ -342,18 +342,18 @@ def show_polygons(ax, polygons_dict):
                 rect_width = width * 0.2
                 # Vẽ 3 cạnh của hình chữ nhật bên trái (trên, trái, dưới)
                 # Trên (chỉ vẽ 0.2 chiều dài)
-                ax.plot([left, left + rect_width], [bottom, bottom], color='red', lw=2, zorder=5)
+                ax.plot([left, left + rect_width], [bottom, bottom], color='red', lw=2, zorder=3)
                 # Trái
-                ax.plot([left, left], [bottom, top], color='red', lw=2, zorder=5)
+                ax.plot([left, left], [bottom, top], color='red', lw=2, zorder=3)
                 # Dưới (chỉ vẽ 0.2 chiều dài)
-                ax.plot([left, left + rect_width], [top, top], color='red', lw=2, zorder=5)
+                ax.plot([left, left + rect_width], [top, top], color='red', lw=2, zorder=3)
                 # Nửa hình tròn bên phải
                 center_x = left + rect_width
                 center_y = bottom + height / 2
                 theta1 = -90
                 theta2 = 90
                 arc = patches.Arc((center_x, center_y), height, height, angle=0,
-                                  theta1=theta1, theta2=theta2, linewidth=2, edgecolor='red', zorder=5)
+                                  theta1=theta1, theta2=theta2, linewidth=2, edgecolor='red', zorder=3)
                 ax.add_patch(arc)
 
                 
@@ -370,7 +370,7 @@ def show_polygons(ax, polygons_dict):
                     y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
                     bezier_x.append(x)
                     bezier_y.append(y)
-                ax.plot(bezier_x, bezier_y, color='red', lw=2, zorder=5)
+                ax.plot(bezier_x, bezier_y, color='red', lw=2, zorder=3)
                 # Đường cong trên bên phải (đi từ phải sang trái)
                 p0_top = [left, top]
                 p1_top = [left + width * 0.7, top]
@@ -382,7 +382,7 @@ def show_polygons(ax, polygons_dict):
                     y = (1 - t) ** 2 * p0_top[1] + 2 * (1 - t) * t * p1_top[1] + t ** 2 * p2_top[1]
                     bezier_x_top.append(x)
                     bezier_y_top.append(y)
-                ax.plot(bezier_x_top, bezier_y_top, color='red', lw=2, zorder=5)
+                ax.plot(bezier_x_top, bezier_y_top, color='red', lw=2, zorder=3)
 
                 # Đường cong dưới bên phải (đi từ phải sang trái)
                 p0_bot = [left, bottom]
@@ -395,24 +395,24 @@ def show_polygons(ax, polygons_dict):
                     y = (1 - t) ** 2 * p0_bot[1] + 2 * (1 - t) * t * p1_bot[1] + t ** 2 * p2_bot[1]
                     bezier_x_bot.append(x)
                     bezier_y_bot.append(y)
-                ax.plot(bezier_x_bot, bezier_y_bot, color='red', lw=2, zorder=5)
+                ax.plot(bezier_x_bot, bezier_y_bot, color='red', lw=2, zorder=3)
 
 
             elif name in rounded_rects:
                 ax.add_patch(FancyBboxPatch((left, bottom), width, height,
                                             boxstyle="round,pad=0.02,rounding_size=15",
-                                            linewidth=2, edgecolor='red', facecolor='none', zorder=5))
+                                            linewidth=2, edgecolor='red', facecolor='none', zorder=3))
             elif name in ellipses:
                 ax.add_patch(patches.Ellipse(((left + right) / 2, (bottom + top) / 2),
                                              width, height, linewidth=2, edgecolor='red',
-                                             facecolor='none', zorder=5))
+                                             facecolor='none', zorder=3))
             else:
                 ax.add_patch(patches.Rectangle((left, bottom), width, height,
-                                               linewidth=2, edgecolor='red', facecolor='none', zorder=5))
+                                               linewidth=2, edgecolor='red', facecolor='none', zorder=3))
         else:
-            ax.plot(*poly.T, lw=2, color='red', zorder=5)
+            ax.plot(*poly.T, lw=2, color='red', zorder=3)
             if not np.allclose(poly[0], poly[-1]):
-                ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2, color='red', zorder=5)
+                ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2, color='red', zorder=3)
 
     # Vẽ 4 ô nhỏ và nhãn ZNCV cho Flags
     if 'Flags' in polygons_dict:
@@ -426,19 +426,31 @@ def show_polygons(ax, polygons_dict):
         labels = ['N', 'Z', 'C', 'V']
         for i, label in enumerate(labels):
             ax.add_patch(patches.Rectangle((left + i * box_width, bottom), box_width, height,
-                                           linewidth=2, edgecolor='red', facecolor='none', zorder=6))
+                                           linewidth=2, edgecolor='red', facecolor='none', zorder=3))
             cx = left + (i + 0.5) * box_width
             cy = bottom + height / 2
-            ax.text(cx, cy, label, color='black', fontsize=12, ha='center', va='center', zorder=200)
+            ax.text(cx, cy, label, color='black', fontsize=12, ha='center', va='center', zorder=3)
 
     show_name(ax, polygons_dict)
 
 def show_lines(ax, lines_dict):
+    # Các line màu nâu (brown_lines) sẽ được vẽ màu nâu, còn lại màu đen
+    brown_lines = set(
+        [f"L{i}" for i in range(13, 24)] +
+        [f"L{i}" for i in range(24, 29)] +
+        ["L60"]
+    )
     for name, line in lines_dict.items():
         line = np.array(line)
         if line.ndim != 2 or line.shape[0] < 2:
             continue
-        ax.plot(*line.T, lw=1, color='black')
+        if name in brown_lines:
+            color = "#AF7B62"
+            lw = 1
+        else:
+            color = 'black'
+            lw = 1.1
+        ax.plot(*line.T, lw=lw, color=color)
         # # Hiển thị tên line ở giữa đường
         # mid_idx = len(line) // 2
         # if len(line) % 2 == 0:
@@ -449,7 +461,7 @@ def show_lines(ax, lines_dict):
 
 def show_points(ax, point_coords):
     for name, (x, y) in point_coords.items():
-        ax.plot(x, y, 'o', color='red', markersize=3, zorder=20)
+        ax.plot(x, y, 'o', color='red', markersize=3, zorder=5)
 
 
 def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=30):
@@ -532,7 +544,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             move_squares.append(sq)
 
         else:
-            temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=11, weight='bold')            
+            temp_text = ax.text(0, 0, bit_str, color='white', ha='center', va='center', fontsize=10, zorder=10, weight='bold')            
             renderer = ax.figure.canvas.get_renderer()
             bbox = temp_text.get_window_extent(renderer=renderer)
             inv = ax.transData.inverted()
@@ -548,12 +560,12 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
 
 
             rect = patches.Rectangle(
-                (patch_center_x - width, patch_center_y), width, height, color='brown', zorder=100
+                (patch_center_x - width, patch_center_y), width, height, color='brown', zorder=10
             )
             ax.add_patch(rect)
             text = ax.text(
                 patch_center_x - width/2, patch_center_y + height/2, bit_str, 
-                color='white', ha='center', va='center', fontsize=10, zorder=101,
+                color='white', ha='center', va='center', fontsize=10, zorder=10,
                 weight='bold'  # Thêm dòng này
             )
             sq = {'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key}
@@ -574,6 +586,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             bit_str = str(bit_tuple)
         spawn_square(next_path, next_name, bit_str)
         spawned.add(next_name)
+        
 
     def update(frame):
         active_patches = []

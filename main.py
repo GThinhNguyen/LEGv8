@@ -34,9 +34,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ax.axis('off')
         self.canvas = FigureCanvas(self.fig)
 
-        self.fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
-        scale = 0.7
+        self.fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        
+
+        scale = 0.72
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
         cx = (xlim[0] + xlim[1]) / 2
@@ -146,8 +148,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def simulate_all(self):
         order = [
-            'PC', 'P1', 'IM', 'P2', 'Control', 'P4', 'ALUControl', 'P3', 'M1', 'Reg', 'P5',
-            'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 'M3', 'Flags', 'AND1', 'AND2', 'OR',
+            'PC', 'P1', 'IM', 'P2', 'Control',
+            'P3', 'M1', 'Reg', 'P5',  
+            'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
+            'M3', 'Flags', 'AND1', 'AND2', 'OR',
             'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
         ]
         total_lines = self.ui.codeEditor.document().blockCount()
@@ -156,7 +160,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if not hasattr(self, 'current_line_idx'):
             self.current_line_idx = 0
 
+        loop_count = 0
+        max_loops = 100
+
         while self.current_line_idx < total_lines:
+            if loop_count >= max_loops:
+                QtWidgets.QMessageBox.critical(self, "Lỗi", "Chương trình vượt quá 100 vòng lặp! Có thể bị lặp vô hạn.")
+                break
             while self.current_step < len(order):
                 block = order[self.current_step]
                 # Gọi hàm chỉ xử lý logic, không tạo animation
@@ -173,6 +183,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_line_idx = int(bits.data['PC']['Inp0'])//4
             if self.current_line_idx < total_lines:
                 self.highlight_line(self.current_line_idx)
+            loop_count += 1
 
         QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
         self.current_line_idx = 0
@@ -183,8 +194,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def simulate_step(self):
         # Danh sách các block theo thứ tự animation
         order = [
-            'PC', 'P1', 'IM', 'P2', 'Control', 'P4', 'ALUControl', 'P3', 'M1', 'Reg', 'P5',
-            'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 'M3', 'Flags', 'AND1', 'AND2', 'OR',
+            'PC', 'P1', 'IM', 'P2', 'Control',
+            'P3', 'M1', 'Reg', 'P5',  
+            'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
+            'M3', 'Flags', 'AND1', 'AND2', 'OR',
             'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
         ]
 
@@ -272,12 +285,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "<style>body {font-size:24px;} code {font-size:17px; color:#1976d2;} h2 {font-size:26px;} li {font-size:16px;margin-bottom:8px;} .note {font-size:16px;}</style>"
             "<h2 style='color:#1976d2;'>LEGv8 Simulator - Hướng dẫn sử dụng</h2>"
             "<ul>"
-            "<li><b>Mở file:</b> Nhấn <span style='color:#388e3c;'>Open</span> để chọn file mã lệnh LEGv8.</li>"
-            "<li><b>Chạy từng bước:</b> Nhấn <span style='color:#fbc02d;'>Run by Step</span> để chạy từng bước.</li>"
-            "<li><b>Chạy toàn bộ:</b> Nhấn <span style='color:#f57c00;'>Run All</span> để chạy hết chương trình. Nếu đang chạy <span style='color:#fbc02d;'>Run by Step</span> thì chương trình sẽ chạy từ bước hiện tại đến hết.</li>"
+            "<li><b>Mở file:</b> Nhấn <span style='color:#1976d2;'>Open</span> để chọn file mã lệnh LEGv8.</li>"
+            "<li><b>Chạy từng bước:</b> Nhấn <span style='color:#1976d2;'>Run by Step</span> để chạy từng bước.</li>"
+            "<li><b>Chạy toàn bộ:</b> Nhấn <span style='color:#1976d2;'>Run All</span> để chạy hết chương trình. Nếu đang chạy <span style='color:#1976d2;'>Run by Step</span> thì chương trình sẽ chạy từ bước hiện tại đến hết.</li>"
             "<li><b>Lưu file:</b> Nhấn <span style='color:#1976d2;'>Save</span> để lưu lại mã lệnh.</li>"
-            "<li><b>Đóng file:</b> Nhấn <span style='color:#d32f2f;'>Close</span> để đóng file hiện tại.</li>"
-            "<li><b>Làm sạch:</b> Nhấn <span style='color:#388e3c;'>Clean</span> để reset RAM, thanh ghi và trạng thái đang chạy của <span style='color:#fbc02d;'>Run by Step</span>.</li>"
+            "<li><b>Đóng file:</b> Nhấn <span style='color:#1976d2;'>Close</span> để đóng file hiện tại.</li>"
+            "<li><b>Làm sạch:</b> Nhấn <span style='color:#1976d2;'>Clean</span> để reset RAM, thanh ghi và trạng thái đang chạy của <span style='color:#1976d2;'>Run by Step</span>.</li>"
             "<li><b>Xem hướng dẫn:</b> Nhấn <span style='color:#1976d2;'>Instruction</span> để xem hướng dẫn.</li>"
             "</ul>"
             "<hr>"
@@ -286,7 +299,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "- RAM 32 bit, nhập ByteValue là 8 ký tự 0/1.<br>"
             "- Chỉ WordValue dòng đầu mỗi word mới cho phép chỉnh sửa.<br>"
             "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 4 từ 0 đến 508 (tương ứng với 128 dòng RAM).<br>"
-            "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và các nhau 4 byte<br>"
+            "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và cách nhau 4 byte.<br>"
             "- Các lệnh nhánh (B, CBZ, B.cond) trường #imm là số dòng nhảy, chiều dương hướng xuống.<br>"
             "<hr>"
             "<h3 style='color:#1976d2;'>Cú pháp các lệnh cơ bản</h3>"
