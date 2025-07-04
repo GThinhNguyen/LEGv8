@@ -7,7 +7,7 @@ import bits  # Thêm dòng này ở đầu file
 # Đã cộng thêm 200 vào các tọa độ X lớn hơn hoặc bằng 1310
 polygons = {
     'PC': np.array([[ -250, 520], [ -200, 570]]),  # -90-100, -40-100
-    'IM': np.array([[-120, 470], [ 30, 630]]),     # 40-100, 180-100
+    'IM': np.array([[-120, 470], [40, 630]]),     # 40-100, 180-100
     'Reg': np.array([[600, 450], [770, 690]]),
     'Mem': np.array([[1200, 620], [1350, 800]]),  # 1200,1300 -> 1400,1500
     'Flags': np.array([[1030, 400], [1190, 440]]),
@@ -41,19 +41,21 @@ points = {
     'P6': (850, 630),          # Nút giao L54, L55, L56
     'P7': (1160, 580),         # Nút giao L45, L46, L47
     'P8': (-160, 50),          # Nút giao L1, L2, L5
+    'P9': (210, 470),
+    'P10': (210, 560)
 }
 
 lines = {
     'L18': np.array([[420, 150], [1705, 150], [1705, 560]]),  # 1505+200
-    'L14': np.array([[430, 175], [1480, 175], [1480, 370], [1550, 370]]),               # 1350+200
-    'L15': np.array([[440, 200], [1340, 200], [1340, 380], [1380, 380]]),  # 1270+200,1275+200
-    'L16': np.array([[450, 225], [1300, 225], [1300, 500], [1380, 500]]),  # 1250+200,1270+200
+    'L14': np.array([[440, 175], [1480, 175], [1480, 370], [1550, 370]]),               # 1350+200
+    'L15': np.array([[450, 200], [1340, 200], [1340, 380], [1380, 380]]),  # 1270+200,1275+200
+    'L16': np.array([[460, 225], [1300, 225], [1300, 500], [1380, 500]]),  # 1250+200,1270+200
     'L17': np.array([[460, 250], [1260, 250], [1260, 620]]),               # 1240+200
     'L19': np.array([[460, 275], [1220, 275], [1220, 620]]),               # 1200+200
     'L20': np.array([[460, 300], [1080, 300], [1080, 400]]),
-    'L22': np.array([[450, 325], [960, 325], [960, 770]]),
-    'L21': np.array([[440, 350], [915, 350], [915, 550]]),
-    'L23': np.array([[430, 375], [685, 375], [685, 450]]),
+    'L22': np.array([[460, 325], [960, 325], [960, 770]]),
+    'L21': np.array([[450, 350], [915, 350], [915, 550]]),
+    'L23': np.array([[440, 375], [685, 375], [685, 450]]),
     'L13': np.array([[420, 400], [485, 400], [485, 480]]),
 
     'L24': np.array([[1010, 820], [1070, 820], [1070, 620]]),
@@ -69,7 +71,7 @@ lines = {
 
     'L48': np.array([[1070, 500], [1070, 460]]),
 
-    'L29': np.array([[30, 500], [210, 500]]),
+    'L29': np.array([[40, 500], [210, 500]]),
     'L30': np.array([[210, 550], [210, 500]]),
     'L31': np.array([[210, 500], [210, 470]]),
     'L32': np.array([[210, 470], [210, 330], [360, 330]]),
@@ -95,7 +97,7 @@ lines = {
     'L52': np.array([[1720, 610], [1740, 610], [1740, 890], [360, 890], [360, 630], [600, 630]]),  # 1520+200,1540+200
     'L9a': np.array([[1660, 40], [1740, 40], [1740, -50], [ -225, -50], [ -225, 520]]),            # 1460+200,1540+200
 
-    'L54': np.array([[770, 750], [850, 750], [850, 630]]),
+    'L54': np.array([[780, 750], [850, 750], [850, 630]]),
     'L55': np.array([[850, 630], [900, 630]]),
     'L56': np.array([[850, 630], [850, 100], [940, 100]]),
 
@@ -150,6 +152,7 @@ line_next = {
     'P6': ['L55', 'L56'],
     'P7': ['L46', 'L47'],
     'P8': ['L2', 'L5'],
+
 }
 
 # key là tên block, value là list các dict chứa thông tin đối tượng đích, cổng và giá trị hiện tại
@@ -216,7 +219,7 @@ full_names = {
     'IM': 'Instruction\nmemory',
     'Reg': 'Registers',
     'Mem': 'Data\nmemory',
-    'SE': 'Sign\nextend',
+    'SE': 'Sign-\nextend',
     'ALUControl': 'ALU\ncontrol',
     'SL2': 'Shift\nleft 2'
 }
@@ -261,7 +264,7 @@ def show_name(ax, polygons_dict):
             ax.text(cx_alu, cy_alu + 20, format_multiline('ALU'), color='black', fontsize=11, ha='center', va='center', zorder=3, linespacing=0.8)
 
     # Nhãn phụ cho IM
-    ax.text(30 - 3, 470 + 3, "Instruction\n[31-0]", color='black', fontsize=9, ha='right', va='top', zorder=2, linespacing=0.8)
+    ax.text(40 - 3, 470 + 3, "Instruction\n[31-0]", color='black', fontsize=9, ha='right', va='top', zorder=2, linespacing=0.8)
     ax.text(-120 + 3, 520 - 3, "Read\naddress", color='black', fontsize=9, ha='left', va='top', zorder=2, linespacing=0.8)
 
     # Nhãn cho Reg
@@ -314,12 +317,12 @@ def show_name(ax, polygons_dict):
 
 
 
-def show_background(ax, path):
+def show_background(ax, path, zorder=0):
     import matplotlib.image as mpimg
     img = mpimg.imread(path)
-    ax.imshow(img, extent=[0, img.shape[1], img.shape[0], 0], zorder=0)
+    ax.imshow(img, extent=[0, img.shape[1], img.shape[0], 0], zorder=zorder)
 
-def show_polygons(ax, polygons_dict):
+def show_polygons(ax, polygons_dict, zorder=3):
     import matplotlib.patches as patches
     from matplotlib.patches import FancyBboxPatch
 
@@ -338,28 +341,19 @@ def show_polygons(ax, polygons_dict):
             width, height = right - left, top - bottom
 
             if name in ['AND1', 'AND2']:
-                # Vẽ nửa hình chữ nhật bên trái và nửa hình tròn bên phải cho AND1, AND2
                 rect_width = width * 0.2
-                # Vẽ 3 cạnh của hình chữ nhật bên trái (trên, trái, dưới)
-                # Trên (chỉ vẽ 0.2 chiều dài)
-                ax.plot([left, left + rect_width], [bottom, bottom], color='red', lw=2, zorder=3)
-                # Trái
-                ax.plot([left, left], [bottom, top], color='red', lw=2, zorder=3)
-                # Dưới (chỉ vẽ 0.2 chiều dài)
-                ax.plot([left, left + rect_width], [top, top], color='red', lw=2, zorder=3)
-                # Nửa hình tròn bên phải
+                ax.plot([left, left + rect_width], [bottom, bottom], color='red', lw=2, zorder=zorder)
+                ax.plot([left, left], [bottom, top], color='red', lw=2, zorder=zorder)
+                ax.plot([left, left + rect_width], [top, top], color='red', lw=2, zorder=zorder)
                 center_x = left + rect_width
                 center_y = bottom + height / 2
                 theta1 = -90
                 theta2 = 90
                 arc = patches.Arc((center_x, center_y), height, height, angle=0,
-                                  theta1=theta1, theta2=theta2, linewidth=2, edgecolor='red', zorder=3)
+                                  theta1=theta1, theta2=theta2, linewidth=2, edgecolor='red', zorder=zorder)
                 ax.add_patch(arc)
 
-                
             elif name in ['OR']:
-                # Đường cong bên trái (dạng OR gate)
-                # Vẽ một đường cong lồi bên trái, dùng Bezier
                 p0 = [left, bottom]
                 p1 = [left + width * 0.5, bottom + height * 0.5]
                 p2 = [left, top]
@@ -370,8 +364,7 @@ def show_polygons(ax, polygons_dict):
                     y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
                     bezier_x.append(x)
                     bezier_y.append(y)
-                ax.plot(bezier_x, bezier_y, color='red', lw=2, zorder=3)
-                # Đường cong trên bên phải (đi từ phải sang trái)
+                ax.plot(bezier_x, bezier_y, color='red', lw=2, zorder=zorder)
                 p0_top = [left, top]
                 p1_top = [left + width * 0.7, top]
                 p2_top = [left + width, bottom + height * 0.5]
@@ -382,9 +375,7 @@ def show_polygons(ax, polygons_dict):
                     y = (1 - t) ** 2 * p0_top[1] + 2 * (1 - t) * t * p1_top[1] + t ** 2 * p2_top[1]
                     bezier_x_top.append(x)
                     bezier_y_top.append(y)
-                ax.plot(bezier_x_top, bezier_y_top, color='red', lw=2, zorder=3)
-
-                # Đường cong dưới bên phải (đi từ phải sang trái)
+                ax.plot(bezier_x_top, bezier_y_top, color='red', lw=2, zorder=zorder)
                 p0_bot = [left, bottom]
                 p1_bot = [left + width * 0.7, bottom]
                 p2_bot = [left + width, bottom + height * 0.5]
@@ -395,26 +386,24 @@ def show_polygons(ax, polygons_dict):
                     y = (1 - t) ** 2 * p0_bot[1] + 2 * (1 - t) * t * p1_bot[1] + t ** 2 * p2_bot[1]
                     bezier_x_bot.append(x)
                     bezier_y_bot.append(y)
-                ax.plot(bezier_x_bot, bezier_y_bot, color='red', lw=2, zorder=3)
-
+                ax.plot(bezier_x_bot, bezier_y_bot, color='red', lw=2, zorder=zorder)
 
             elif name in rounded_rects:
                 ax.add_patch(FancyBboxPatch((left, bottom), width, height,
                                             boxstyle="round,pad=0.02,rounding_size=15",
-                                            linewidth=2, edgecolor='red', facecolor='none', zorder=3))
+                                            linewidth=2, edgecolor='red', facecolor='none', zorder=zorder))
             elif name in ellipses:
                 ax.add_patch(patches.Ellipse(((left + right) / 2, (bottom + top) / 2),
                                              width, height, linewidth=2, edgecolor='red',
-                                             facecolor='none', zorder=3))
+                                             facecolor='none', zorder=zorder))
             else:
                 ax.add_patch(patches.Rectangle((left, bottom), width, height,
-                                               linewidth=2, edgecolor='red', facecolor='none', zorder=3))
+                                               linewidth=2, edgecolor='red', facecolor='none', zorder=zorder))
         else:
-            ax.plot(*poly.T, lw=2, color='red', zorder=3)
+            ax.plot(*poly.T, lw=2, color='red', zorder=zorder)
             if not np.allclose(poly[0], poly[-1]):
-                ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2, color='red', zorder=3)
+                ax.plot([poly[-1,0], poly[0,0]], [poly[-1,1], poly[0,1]], lw=2, color='red', zorder=zorder)
 
-    # Vẽ 4 ô nhỏ và nhãn ZNCV cho Flags
     if 'Flags' in polygons_dict:
         poly = np.array(polygons_dict['Flags'])
         x0, y0 = poly[0]
@@ -426,14 +415,14 @@ def show_polygons(ax, polygons_dict):
         labels = ['N', 'Z', 'C', 'V']
         for i, label in enumerate(labels):
             ax.add_patch(patches.Rectangle((left + i * box_width, bottom), box_width, height,
-                                           linewidth=2, edgecolor='red', facecolor='none', zorder=3))
+                                           linewidth=2, edgecolor='red', facecolor='none', zorder=zorder))
             cx = left + (i + 0.5) * box_width
             cy = bottom + height / 2
-            ax.text(cx, cy, label, color='black', fontsize=12, ha='center', va='center', zorder=3)
+            ax.text(cx, cy, label, color='black', fontsize=12, ha='center', va='center', zorder=zorder)
 
     show_name(ax, polygons_dict)
 
-def show_lines(ax, lines_dict):
+def show_lines(ax, lines_dict, zorder=2):
     # Các line màu nâu (brown_lines) sẽ được vẽ màu nâu, còn lại màu đen
     brown_lines = set(
         [f"L{i}" for i in range(13, 24)] +
@@ -450,7 +439,7 @@ def show_lines(ax, lines_dict):
         else:
             color = 'black'
             lw = 1.1
-        ax.plot(*line.T, lw=lw, color=color)
+        ax.plot(*line.T, lw=lw, color=color, zorder=zorder)
         # # Hiển thị tên line ở giữa đường
         # mid_idx = len(line) // 2
         # if len(line) % 2 == 0:
@@ -459,9 +448,9 @@ def show_lines(ax, lines_dict):
         #     mid_point = line[mid_idx]
         # ax.text(mid_point[0], mid_point[1], name, color='blue', fontsize=7, ha='center', va='center', zorder=50)
 
-def show_points(ax, point_coords):
+def show_points(ax, point_coords, zorder=5):
     for name, (x, y) in point_coords.items():
-        ax.plot(x, y, 'o', color='red', markersize=3, zorder=5)
+        ax.plot(x, y, 'o', color='red', markersize=3, zorder=zorder)
 
 def add2(bit_data, lines_list):
     """
@@ -488,13 +477,12 @@ def add2(bit_data, lines_list):
         else:
             return str(bit_data)
 
-def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=30):
+def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=30, zorder=10):
     import matplotlib.patches as patches
     import matplotlib.animation as animation
 
     if not hasattr(ax, 'existing_squares'):
         ax.existing_squares = {}
-
 
     # Đưa tất cả các ô vuông cũ về cuối đường trước khi xóa hoặc tạo mới
     for sq in ax.existing_squares.values():
@@ -543,7 +531,6 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
                 sq_rm['patch'].remove()
                 sq_rm['text'].remove()
 
-    
         if key in ax.existing_squares:
             sq = ax.existing_squares[key]
             sq['distance_travelled'] = 0.0
@@ -570,7 +557,7 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             move_squares.append(sq)
 
         else:
-            temp_text = ax.text(0, 0, display_bit_str, color='white', ha='center', va='center', fontsize=10, zorder=10, weight='bold')            
+            temp_text = ax.text(0, 0, display_bit_str, color='white', ha='center', va='center', fontsize=10, zorder=zorder, weight='bold')            
             renderer = ax.figure.canvas.get_renderer()
             bbox = temp_text.get_window_extent(renderer=renderer)
             inv = ax.transData.inverted()
@@ -579,19 +566,17 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             height = bbox_data.height
             temp_text.remove()
 
-
             # ÁP DỤNG ĐIỀU CHỈNH VỊ TRÍ SPAWN - PATCH VÀ TEXT CÙNG TRUNG TÂM
             patch_center_x = path[0][0]
             patch_center_y = path[0][1]
 
-
             rect = patches.Rectangle(
-                (patch_center_x - width, patch_center_y), width, height, color='brown', zorder=10
+                (patch_center_x - width, patch_center_y), width, height, color='brown', zorder=zorder
             )
             ax.add_patch(rect)
             text = ax.text(
                 patch_center_x - width/2, patch_center_y + height/2, bit_str, 
-                color='white', ha='center', va='center', fontsize=10, zorder=10,
+                color='white', ha='center', va='center', fontsize=10, zorder=zorder,
                 weight='bold'  # Thêm dòng này
             )
             sq = {'patch': rect, 'text': text, 'path': path, 'distance_travelled': 0.0, 'to': to_key}
