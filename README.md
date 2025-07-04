@@ -47,6 +47,7 @@ pip install pyqt5 matplotlib numpy
 ## 📝 Hướng dẫn sử dụng
 
 1. **Chạy chương trình:**
+   
    Cách 1:
    Đảm bảo yêu cầu cài đặt
 
@@ -57,7 +58,7 @@ pip install pyqt5 matplotlib numpy
    Cách 2:
    Ngoài ra có thể chạy file main.exe trong thư mục dist
 
-2. **Các chức năng chính:**
+3. **Các chức năng chính:**
 
    - **Open:** Mở file mã lệnh LEGv8 (.txt, .s, .asm).
    - **Save:** Lưu file mã lệnh.
@@ -66,19 +67,19 @@ pip install pyqt5 matplotlib numpy
    - **Clean:** Đặt lại RAM, thanh ghi, trạng thái mô phỏng.
    - **Instruction:** Xem hướng dẫn sử dụng chi tiết.
 
-3. **Nhập code:**
+4. **Nhập code:**
 
    - Viết mã LEGv8 vào khung code, mỗi dòng một lệnh. Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và cách nhau 4 byte.
    - Có thể dùng `//` để chú thích cuối dòng. Nhưng phải đảm bảo dòng nào cũng có code.
 
-4. **Giới hạn nhập liệu:**
+5. **Giới hạn nhập liệu:**
 
    - **Thanh ghi:** Chỉ nhận giá trị từ -2147483648 đến 2147483647 (32 bit có dấu).
    - **RAM:** ByteValue chỉ nhận 8 ký tự 0/1.
    - **XZR (X31):** Luôn bằng 0, không thể thay đổi.
    - **WordValue:** Chỉ dòng đầu mỗi word mới cho phép chỉnh sửa.
 
-5. **Cú pháp lệnh cơ bản:**
+6. **Cú pháp lệnh cơ bản:**
 
    - `ADD Xd, Xn, Xm` (tương tự: SUB, AND, ORR, EOR, ADDS, SUBS, ANDS)
    - `ADDI Xd, Xn, #imm` (tương tự: SUBI, ANDI, ORRI, EORI, ADDIS, SUBIS, ANDIS)
@@ -87,7 +88,7 @@ pip install pyqt5 matplotlib numpy
    - `B #imm`
    - `B.EQ #imm` (tương tự các điều kiện: B.EQ, B.NE, B.MI, B.PL, B.VS, B.VC, B.GE, B.LT, B.GT, B.LE)
 
-6. **Lưu ý:**
+7. **Lưu ý:**
    - Kết quả phép tính trên ALU luôn giả lập tràn số 32 bit có dấu (two's complement).
    - LDUR/STUR chỉ hỗ trợ địa chỉ chia hết cho 4 từ 0 đến 508 (128 dòng RAM).
    - Mỗi dòng code phải viết liền nhau, không được có dòng trống.
