@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
 from matplotlib.path import Path
-import bits  # Thêm dòng này ở đầu file
+import bits  
 # Đã cộng thêm 200 vào các tọa độ X lớn hơn hoặc bằng 1310
 polygons = {
     'PC': np.array([[ -250, 520], [ -200, 570]]),  # -90-100, -40-100

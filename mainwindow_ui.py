@@ -114,8 +114,7 @@ class CodeHighlighter(QSyntaxHighlighter):
         keywords = [
             "ADD", "SUB", "AND", "ORR", "ADDI", "SUBI", "ANDI", "ORRI", "ANDIS", "EORI",
             "LDUR", "STUR", "CBZ", "B", "ADDS", "SUBS", "ANDS", "ADDIS", "SUBIS", "EOR" ,
-            "B.EQ", "B.NE", "B.CS", "B.HS", "B.CC", "B.LO", "B.MI", "B.PL", "B.VS", "B.VC",
-            "B.HI", "B.LS", "B.GE", "B.LT", "B.GT", "B.LE",
+            "B.EQ", "B.NE", "B.MI", "B.PL", "B.VS", "B.VC", "B.GE", "B.LT", "B.GT", "B.LE",
         ]
         self.keywordPatterns = [QRegExp(r'\b' + kw + r'\b') for kw in keywords]
         self.numberPattern = QRegExp(r'\b\d+\b')

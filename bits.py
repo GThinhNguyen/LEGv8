@@ -1,8 +1,4 @@
 import mainwindow_ui
-import simulate
-import main
-
-# Bộ nhớ giả lập\ nMEMORY = {}
 
 data = {
     'PC': {'Inp0': '0'},
@@ -183,14 +179,10 @@ def assemble_instruction(inst_str):
         cond_map = {
             'B.EQ':  0b0000,
             'B.NE':  0b0001,
-            'B.CS':  0b0010, 'B.HS': 0b0010,
-            'B.CC':  0b0011, 'B.LO': 0b0011,
             'B.MI':  0b0100,
             'B.PL':  0b0101,
             'B.VS':  0b0110,
             'B.VC':  0b0111,
-            'B.HI':  0b1000,
-            'B.LS':  0b1001,
             'B.GE':  0b1010,
             'B.LT':  0b1011,
             'B.GT':  0b1100,
@@ -449,7 +441,6 @@ def get_bits_for_path(block, ui = None):
         else:
             vFlag = 0
 
-        # Ghép chuỗi NZCV
         Flag = f"{nFlag}{zeroFlag}{cFlag}{vFlag}"
         return (zeroFlag, res, Flag)
 
@@ -480,14 +471,10 @@ def get_bits_for_path(block, ui = None):
             return {
                 0b0000: lambda: z,                  # EQ: Z == 1
                 0b0001: lambda: not z,              # NE: Z == 0
-                0b0010: lambda: c,                  # HS/CS: C == 1
-                0b0011: lambda: not c,              # LO/CC: C == 0
                 0b0100: lambda: n,                  # MI: N == 1
                 0b0101: lambda: not n,              # PL: N == 0
                 0b0110: lambda: v,                  # VS: V == 1
                 0b0111: lambda: not v,              # VC: V == 0
-                0b1000: lambda: c and not z,        # HI: C == 1 & Z == 0
-                0b1001: lambda: not c or z,         # LS: C == 0 or Z == 1
                 0b1010: lambda: n == v,             # GE: N == V
                 0b1011: lambda: n != v,             # LT: N != V
                 0b1100: lambda: not z and (n == v), # GT: Z == 0 & N == V
