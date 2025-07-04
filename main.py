@@ -284,15 +284,34 @@ class MainWindow(QtWidgets.QMainWindow):
             self.highlight_line(self.current_line_idx)
             bits.reset_data()
             return
+        
         self.highlight_line(self.current_line_idx)
         block = order[self.current_step]
-        
+
+        # Xóa highlight cũ
+        if hasattr(self, 'highlighted_lines'):
+            simulate.clear_highlighted_lines(self.highlighted_lines)
+
+        # Highlight các line tiếp theo (nếu không phải bước cuối)
+        if self.current_step + 1 < len(order):
+            next_block = order[self.current_step + 1]
+            self.highlighted_lines = simulate.highlight_next_lines(
+                self.ax, next_block, simulate.line_next, simulate.lines
+            )
+        else:
+            next_block = order[0]
+            self.highlighted_lines = simulate.highlight_next_lines(
+                self.ax, next_block, simulate.line_next, simulate.lines
+            )
+                
         # Animate block/line hiện tại
         if self.ani:
             self.ani.event_source.stop()
         self.ani = simulate.animate_square_from_block(
             self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=100, speed=10
         )
+
+
 
         if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
             rd= bits.data['Reg']['WriteRegister']
@@ -305,7 +324,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_clean(self):
         # Đưa giá trị thanh ghi về mặc định (0)
-        for i in range(self.ui.registerShow.rowCount()):
+        for i in range(self.ui.registerShow.rowCount() - 1):
             self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem("0"))
             item = self.ui.ramTable.item(i, 1)
             item.setBackground(QColor(255, 255, 200))

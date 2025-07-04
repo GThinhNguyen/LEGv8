@@ -62,7 +62,7 @@ lines = {
 
     'L25': np.array([[1120, 540], [1380, 540]]),              # 1250+200
     'L26': np.array([[1440, 400], [1550, 400]]),  # 1320+200,1325+200,1350+200
-    'L27': np.array([[1605, 400], [1645, 400], [1645, 100]]),               # 1410+200,1440+200
+    'L27': np.array([[1610, 400], [1645, 400], [1645, 100]]),               # 1410+200,1440+200
     'L28': np.array([[1440, 520], [1480, 520], [1480, 430], [1550, 430]]),  # 1320+200,1330+200,1350+200
 
     'L45': np.array([[1120, 580], [1160, 580]]),              # 1230+200
@@ -72,16 +72,16 @@ lines = {
     'L48': np.array([[1070, 500], [1070, 460]]),
 
     'L29': np.array([[40, 500], [210, 500]]),
-    'L30': np.array([[210, 550], [210, 500]]),
-    'L31': np.array([[210, 500], [210, 470]]),
+    # 'L30': np.array([[210, 550], [210, 500]]),
+    # 'L31': np.array([[210, 550], [210, 500], [210, 470]]),
     'L32': np.array([[210, 470], [210, 330], [360, 330]]),
-    'L33': np.array([[210, 470], [600, 470]]),
-    'L34': np.array([[210, 500], [470, 500]]),
-    'L35': np.array([[210, 540], [210, 590]]),
-    'L36': np.array([[210, 560], [360, 560]]),
+    'L33': np.array([[210, 550], [210, 470], [600, 470]]),
+    'L34': np.array([[210, 550], [210, 500], [470, 500]]),
+    # 'L35': np.array([[210, 540], [210, 590]]),
+    'L36': np.array([[210, 500], [210, 560], [360, 560]]),
     'L37': np.array([[360, 560], [470, 560]]),
     'L38': np.array([[360, 560], [360, 590], [600, 590]]),
-    'L39': np.array([[210, 590], [210, 750], [440, 750]]),
+    'L39': np.array([[210, 560], [210, 750], [440, 750]]),
     'L40': np.array([[440, 750], [680, 750]]),
     'L53': np.array([[440, 750], [440, 820], [910, 820]]),
 
@@ -450,7 +450,7 @@ def show_lines(ax, lines_dict, zorder=2):
 
 def show_points(ax, point_coords, zorder=5):
     for name, (x, y) in point_coords.items():
-        ax.plot(x, y, 'o', color='red', markersize=3, zorder=zorder)
+        ax.plot(x, y, 'o', color='red', markersize=4, zorder=zorder)
 
 def add2(bit_data, lines_list):
     """
@@ -476,6 +476,51 @@ def add2(bit_data, lines_list):
             return f"{bit_data}$_2$"
         else:
             return str(bit_data)
+        
+
+def highlight_next_lines(ax, current_block, line_next, lines, zorder=2):
+    """
+    Highlight các đường line tiếp theo từ current_block
+
+    Args:
+        ax: matplotlib axes object
+        current_block: tên block hiện tại
+        line_next: dictionary chứa mapping block -> danh sách line tiếp theo
+        lines: dictionary chứa dữ liệu các line
+        zorder: thứ tự vẽ (mặc định 10)
+
+    Returns:
+        list: danh sách các line object đã được highlight
+    """
+    import numpy as np
+
+    highlighted_lines = []
+
+    # Lấy danh sách line tiếp theo từ current_block
+    next_lines = line_next.get(current_block, [])
+
+    for line_name in next_lines:
+        if line_name in lines:
+            line_data = np.array(lines[line_name])
+            if line_data.ndim == 2 and line_data.shape[0] >= 2:
+                # Vẽ đường line với độ dày lớn hơn và màu nổi bật
+                line_obj = ax.plot(*line_data.T, lw=3, color='blue', zorder=zorder, alpha=0.5)
+                highlighted_lines.extend(line_obj)
+
+    return highlighted_lines
+
+def clear_highlighted_lines(highlighted_lines):
+    """
+    Xóa các đường line đã highlight
+    
+    Args:
+        highlighted_lines: danh sách các line object cần xóa
+    """
+    for line in highlighted_lines:
+        try:
+            line.remove()
+        except:
+            pass
 
 def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20, speed=30, zorder=10):
     import matplotlib.patches as patches
@@ -569,6 +614,8 @@ def animate_square_from_block(ax, start_block, lines, line_next, ui, interval=20
             # ÁP DỤNG ĐIỀU CHỈNH VỊ TRÍ SPAWN - PATCH VÀ TEXT CÙNG TRUNG TÂM
             patch_center_x = path[0][0]
             patch_center_y = path[0][1]
+
+            from matplotlib.patches import FancyBboxPatch
 
             rect = patches.Rectangle(
                 (patch_center_x - width, patch_center_y), width, height, color='brown', zorder=zorder
