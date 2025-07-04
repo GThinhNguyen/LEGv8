@@ -451,7 +451,7 @@ def get_bits_for_path(block, ui = None):
         
         nzcv = data['Flags']['NZCV']  # string 4 ký tự
         n, z, c, v = nzcv[0], nzcv[1], nzcv[2], nzcv[3]
-
+        n, z, c, v = int(n), int(z), int(c), int(v) 
         def highlight_flag(label, bit):
             if bit == '1':
                 label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
