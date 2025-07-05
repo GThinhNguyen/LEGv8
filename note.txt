@@ -1,2 +1,4 @@
-- chọn thứ tự gọi hàm
-- 
+- chạy animation liên tục, chỉnh tốc độ, pause
+- chạy từng dòng (bỏ qua aninmate)
+- chạy lại animation cả dòng
+- chạy đến brakepoint (bỏ animation)
