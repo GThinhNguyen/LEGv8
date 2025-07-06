@@ -174,7 +174,7 @@ def update_square_position(sq, speed):
     if distance_travelled < total_len:
         sq['distance_travelled'] = min(total_len, distance_travelled + speed)
 
-def run_by_step_with_animate(ax, start_block, lines, line_next, ui, interval=20, speed=30, zorder=10):
+def run_by_step_with_animate(ax, start_block, lines, line_next, ui, interval=2, speed=15, zorder=10):
     """
     Chạy animation cho một block với tối ưu performance
     """
@@ -203,18 +203,15 @@ def run_by_step_with_animate(ax, start_block, lines, line_next, ui, interval=20,
         move_squares.append(sq)
 
     def update(frame):
-        """Update function được tối ưu"""
-        active_patches = []
         for sq in move_squares:
             update_square_position(sq, speed)
-            active_patches.extend([sq['patch'], sq['text']])
-        return active_patches
+        # KHÔNG gọi ax.figure.canvas.draw_idle() ở đây!
+        return [sq['patch'] for sq in move_squares] + [sq['text'] for sq in move_squares]
 
-    # Tạo animation với interval được tối ưu
     ani = animation.FuncAnimation(
         ax.figure, update, 
-        interval=max(interval, 50),  # Minimum 50ms để tránh lag
-        blit=False, 
+        interval=interval,  # Đặt interval tối thiểu 50ms
+        blit=False,         # Nếu muốn mượt hơn, có thể thử blit=True
         cache_frame_data=False
     )
     return ani
@@ -232,6 +229,7 @@ def run_all_with_animate(ax, start_blocks, lines, line_next, ui, interval=20, sp
     def run_next_animation():
         if current_index[0] >= len(start_blocks):
             print("Đã hoàn thành tất cả animation!")
+            ax.figure.canvas.draw_idle()
             return
         
         current_block = start_blocks[current_index[0]]
@@ -249,7 +247,6 @@ def run_all_with_animate(ax, start_blocks, lines, line_next, ui, interval=20, sp
         
         # Lên lịch animation tiếp theo
         def schedule_next():
-            ax.figure.canvas.draw_idle()
             run_next_animation()
         
         timer = ax.figure.canvas.new_timer(interval=animation_time)

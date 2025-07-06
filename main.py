@@ -271,7 +271,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.ani:
             self.ani.event_source.stop()
         self.ani = simulate.run_by_step_with_animate(
-            self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=100, speed=10
+            self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=0.1, speed=15
         )
 
         if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
