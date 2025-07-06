@@ -3,6 +3,72 @@ from PyQt5.QtWidgets import QPlainTextEdit, QWidget, QTextEdit, QApplication, QM
 from PyQt5.QtGui import QColor, QPainter, QTextFormat, QFont, QSyntaxHighlighter, QTextCharFormat
 from PyQt5.QtCore import QRect, Qt, QSize, pyqtSlot, QRegExp
 
+
+# Thêm vào đầu file mainwindow_ui.py, sau các import:
+
+class SnapSlider(QtWidgets.QSlider):
+    """Custom QSlider that snaps to tick marks when clicked"""
+    
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+    
+    def mousePressEvent(self, event):
+        """Override mouse press to snap to nearest tick"""
+        if event.button() == QtCore.Qt.LeftButton:
+            # Tính vị trí click theo pixel
+            if self.orientation() == QtCore.Qt.Horizontal:
+                click_pos = event.x()
+                slider_range = self.width()
+            else:
+                click_pos = event.y()
+                slider_range = self.height()
+            
+            # Chuyển đổi từ pixel sang giá trị slider
+            value_range = self.maximum() - self.minimum()
+            relative_pos = click_pos / slider_range
+            raw_value = self.minimum() + (relative_pos * value_range)
+            
+            # Snap tới tick mark gần nhất
+            tick_interval = self.tickInterval()
+            if tick_interval > 0:
+                snapped_value = round(raw_value / tick_interval) * tick_interval
+                snapped_value = max(self.minimum(), min(self.maximum(), snapped_value))
+                self.setValue(int(snapped_value))
+            else:
+                self.setValue(int(round(raw_value)))
+            
+            # Emit signal
+            self.valueChanged.emit(self.value())
+        else:
+            super().mousePressEvent(event)
+    
+    def mouseMoveEvent(self, event):
+        """Override mouse move để cũng snap khi drag"""
+        if event.buttons() & QtCore.Qt.LeftButton:
+            # Tương tự logic như mousePressEvent
+            if self.orientation() == QtCore.Qt.Horizontal:
+                click_pos = event.x()
+                slider_range = self.width()
+            else:
+                click_pos = event.y()
+                slider_range = self.height()
+            
+            value_range = self.maximum() - self.minimum()
+            relative_pos = click_pos / slider_range
+            raw_value = self.minimum() + (relative_pos * value_range)
+            
+            tick_interval = self.tickInterval()
+            if tick_interval > 0:
+                snapped_value = round(raw_value / tick_interval) * tick_interval
+                snapped_value = max(self.minimum(), min(self.maximum(), snapped_value))
+                self.setValue(int(snapped_value))
+            else:
+                self.setValue(int(round(raw_value)))
+            
+            self.valueChanged.emit(self.value())
+        else:
+            super().mouseMoveEvent(event)
+
 class LineNumberArea(QWidget):
     def __init__(self, editor):
         super().__init__(editor)
@@ -13,11 +79,27 @@ class LineNumberArea(QWidget):
 
     def paintEvent(self, event):
         self.codeEditor.lineNumberAreaPaintEvent(event)
+    
+    def mousePressEvent(self, event):
+        """Xử lý click vào line number area để toggle breakpoint"""
+        if event.button() == QtCore.Qt.LeftButton:
+            # Tính dòng được click
+            line_height = self.codeEditor.fontMetrics().height()
+            line_number = int(event.y() / line_height) + self.codeEditor.firstVisibleBlock().blockNumber()
+            
+            # Toggle breakpoint
+            self.codeEditor.toggle_breakpoint(line_number)
 
 class CodeEditor(QPlainTextEdit):
+    # Signal để thông báo khi breakpoint thay đổi
+    breakpoint_toggled = QtCore.pyqtSignal(int, bool)  # line_number, is_set
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.lineNumberArea = LineNumberArea(self)
+        
+        # Set để lưu các dòng có breakpoint
+        self.breakpoints = set()
 
         self.blockCountChanged.connect(self.updateLineNumberAreaWidth)
         self.updateRequest.connect(self.updateLineNumberArea)
@@ -28,8 +110,44 @@ class CodeEditor(QPlainTextEdit):
 
     def lineNumberAreaWidth(self):
         digits = len(str(self.blockCount()))
-        space = 3 + self.fontMetrics().width('9') * digits
+        space = 3 + self.fontMetrics().width('9') * digits + 20  # +20 cho breakpoint area
         return space
+
+    def toggle_breakpoint(self, line_number):
+        """Toggle breakpoint tại dòng line_number (0-based)"""
+        if line_number < 0 or line_number >= self.blockCount():
+            return
+            
+        if line_number in self.breakpoints:
+            self.breakpoints.remove(line_number)
+            self.breakpoint_toggled.emit(line_number, False)
+        else:
+            self.breakpoints.add(line_number)
+            self.breakpoint_toggled.emit(line_number, True)
+        
+        # Cập nhật hiển thị
+        self.lineNumberArea.update()
+    
+    def set_breakpoint(self, line_number, enabled=True):
+        """Set breakpoint tại dòng line_number"""
+        if enabled:
+            self.breakpoints.add(line_number)
+        else:
+            self.breakpoints.discard(line_number)
+        self.lineNumberArea.update()
+    
+    def clear_all_breakpoints(self):
+        """Xóa tất cả breakpoints"""
+        self.breakpoints.clear()
+        self.lineNumberArea.update()
+    
+    def get_breakpoints(self):
+        """Trả về danh sách các dòng có breakpoint"""
+        return sorted(list(self.breakpoints))
+    
+    def is_breakpoint(self, line_number):
+        """Kiểm tra dòng có breakpoint không"""
+        return line_number in self.breakpoints
 
     @pyqtSlot(int)
     def updateLineNumberAreaWidth(self, _):
@@ -74,17 +192,64 @@ class CodeEditor(QPlainTextEdit):
         top = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
         bottom = top + self.blockBoundingRect(block).height()
 
+        # Tính toán vị trí cho breakpoint
+        breakpoint_radius = 6
+        breakpoint_x = 8
+        line_number_start_x = 20
+
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
+                # Vẽ breakpoint nếu có
+                if blockNumber in self.breakpoints:
+                    painter.setBrush(QColor(255, 0, 0))  # Màu đỏ
+                    painter.setPen(QColor(139, 0, 0))     # Viền đỏ đậm
+                    center_y = int(top + self.blockBoundingRect(block).height() / 2)
+                    painter.drawEllipse(
+                        breakpoint_x - breakpoint_radius//2, 
+                        center_y - breakpoint_radius//2,
+                        breakpoint_radius, 
+                        breakpoint_radius
+                    )
+                
+                # Vẽ số dòng
                 number = str(blockNumber + 1)
                 painter.setPen(Qt.black)
-                painter.drawText(0, int(top), self.lineNumberArea.width(),
-                                 self.fontMetrics().height(), Qt.AlignRight, number)
+                painter.drawText(
+                    line_number_start_x, int(top), 
+                    self.lineNumberArea.width() - line_number_start_x,
+                    self.fontMetrics().height(), 
+                    Qt.AlignRight, number
+                )
 
             block = block.next()
             top = bottom
             bottom = top + self.blockBoundingRect(block).height()
             blockNumber += 1
+    
+    def contextMenuEvent(self, event):
+        """Context menu với các tùy chọn breakpoint"""
+        menu = self.createStandardContextMenu()
+        
+        # Thêm separator
+        menu.addSeparator()
+        
+        # Thêm breakpoint actions
+        cursor = self.cursorForPosition(event.pos())
+        line_number = cursor.blockNumber()
+        
+        if line_number in self.breakpoints:
+            action = menu.addAction("Remove Breakpoint")
+            action.triggered.connect(lambda: self.toggle_breakpoint(line_number))
+        else:
+            action = menu.addAction("Add Breakpoint")
+            action.triggered.connect(lambda: self.toggle_breakpoint(line_number))
+        
+        # Thêm action xóa tất cả breakpoints
+        if self.breakpoints:
+            action = menu.addAction("Clear All Breakpoints")
+            action.triggered.connect(self.clear_all_breakpoints)
+        
+        menu.exec_(event.globalPos())
 
 class CodeHighlighter(QSyntaxHighlighter):
     def __init__(self, parent=None):
@@ -147,6 +312,7 @@ class CodeHighlighter(QSyntaxHighlighter):
             self.setFormat(index, length, self.commentFormat)
             index = self.commentPattern.indexIn(text, index + length)
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -169,36 +335,71 @@ class Ui_MainWindow(object):
         self.setting_frame.setLineWidth(2)
         self.setting_frame.setObjectName("setting_frame")
         
-        # Layout cho setting_frame
-        self.setting_layout = QtWidgets.QVBoxLayout(self.setting_frame)
+        # Layout cho setting_frame: dùng QGridLayout để chia 2 cột
+        self.setting_layout = QtWidgets.QGridLayout(self.setting_frame)
+
         self.open_bottom = QtWidgets.QPushButton(self.setting_frame)
         self.open_bottom.setObjectName("open_bottom")
-        self.setting_layout.addWidget(self.open_bottom)
-        
+        self.setting_layout.addWidget(self.open_bottom, 0, 0)
+
         self.close_bottom = QtWidgets.QPushButton(self.setting_frame)
         self.close_bottom.setObjectName("close_bottom")
-        self.setting_layout.addWidget(self.close_bottom)
-        
+        self.setting_layout.addWidget(self.close_bottom, 1, 0)
+
         self.save_bottom = QtWidgets.QPushButton(self.setting_frame)
         self.save_bottom.setObjectName("save_bottom")
-        self.setting_layout.addWidget(self.save_bottom)
+        self.setting_layout.addWidget(self.save_bottom, 2, 0)
+
+        self.instruction_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.instruction_bottom.setObjectName("instruction_bottom")
+        self.setting_layout.addWidget(self.instruction_bottom, 3, 0)
+
+        self.last_step_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.last_step_bottom.setObjectName("last_step_bottom")
+        self.setting_layout.addWidget(self.last_step_bottom, 0, 1)
         
-        self.run_all_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.run_all_bottom.setObjectName("run_all_bottom")
-        self.setting_layout.addWidget(self.run_all_bottom)
-        
-        self.run_step_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.run_step_bottom.setObjectName("run_step_bottom")
-        self.setting_layout.addWidget(self.run_step_bottom)
-        
+        self.last_line_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.last_line_bottom.setObjectName("last_line_bottom")
+        self.setting_layout.addWidget(self.last_line_bottom, 1, 1)
+
         self.clean_bottom = QtWidgets.QPushButton(self.setting_frame)
         self.clean_bottom.setObjectName("clean_bottom")
-        self.setting_layout.addWidget(self.clean_bottom)
-        
-        self.help_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.help_bottom.setObjectName("help_bottom")
-        self.setting_layout.addWidget(self.help_bottom)
+        self.setting_layout.addWidget(self.clean_bottom, 2, 1)
 
+        self.animate_button = QtWidgets.QPushButton(self.setting_frame)
+        self.animate_button.setObjectName("animate_button")
+        self.animate_button.setCheckable(True)
+        self.setting_layout.addWidget(self.animate_button, 3, 1)
+
+        self.run_by_step_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.run_by_step_bottom.setObjectName("run_by_step_bottom")
+        self.setting_layout.addWidget(self.run_by_step_bottom, 0, 2)
+
+        self.run_by_line_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.run_by_line_bottom.setObjectName("run_by_line_bottom")
+        self.setting_layout.addWidget(self.run_by_line_bottom, 1, 2)
+
+        self.run_to_checkpoint_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.run_to_checkpoint_bottom.setObjectName("run_to_checkpoint_bottom")
+        self.setting_layout.addWidget(self.run_to_checkpoint_bottom, 2, 2)  # ← SỬA ĐÂY
+
+        self.run_all_bottom = QtWidgets.QPushButton(self.setting_frame)
+        self.run_all_bottom.setObjectName("run_all_bottom")
+        self.setting_layout.addWidget(self.run_all_bottom, 3, 2)
+
+        # Thêm thanh trượt điều chỉnh tốc độ
+        self.speed_label = QtWidgets.QLabel("Speed:", self.setting_frame)
+        self.setting_layout.addWidget(self.speed_label, 4, 0)
+
+        self.speed_slider = SnapSlider(Qt.Horizontal, self.setting_frame)        
+        self.speed_slider.setMinimum(1)
+        self.speed_slider.setMaximum(10)
+        self.speed_slider.setValue(5)
+        self.speed_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.speed_slider.setTickInterval(1)
+        self.speed_slider.setObjectName("speed_slider")
+        self.setting_layout.addWidget(self.speed_slider, 4, 1, 1, 2)
+        
         self.top_layout.addWidget(self.setting_frame)
         
         # Code frame
@@ -216,6 +417,8 @@ class Ui_MainWindow(object):
         
         self.top_layout.addWidget(self.code_frame, stretch=2)  # Cho code_frame chiếm nhiều không gian hơn
         self.highlighter = CodeHighlighter(self.codeEditor.document())
+
+        
         # Register frame
         self.reg_frame = QtWidgets.QFrame(self.centralwidget)
         self.reg_frame.setFrameShape(QtWidgets.QFrame.Box)
@@ -367,10 +570,18 @@ class Ui_MainWindow(object):
         self.open_bottom.setText(_translate("MainWindow", "Open file"))
         self.close_bottom.setText(_translate("MainWindow", "Close file"))
         self.save_bottom.setText(_translate("MainWindow", "Save"))
+        self.animate_button.setText(_translate("MainWindow", "Animate"))
+        self.run_by_step_bottom.setText(_translate("MainWindow", "Run by step"))
+        self.run_by_line_bottom.setText(_translate("MainWindow", "Run by line"))
+        self.run_to_checkpoint_bottom.setText(_translate("MainWindow", "Run to checkpoint"))
         self.run_all_bottom.setText(_translate("MainWindow", "Run all"))
-        self.run_step_bottom.setText(_translate("MainWindow", "Run by step"))
+        self.last_step_bottom.setText(_translate("MainWindow", "Last step"))
+        self.last_line_bottom.setText(_translate("MainWindow", "Last line"))
         self.clean_bottom.setText(_translate("MainWindow", "Clean"))
-        self.help_bottom.setText(_translate("MainWindow", "Instructions"))
+        self.instruction_bottom.setText(_translate("MainWindow", "Instructions"))
+
+
+
         self.registerShow.verticalHeaderItem(0).setText(_translate("MainWindow", "X0"))
         self.registerShow.verticalHeaderItem(1).setText(_translate("MainWindow", "X1"))
         self.registerShow.verticalHeaderItem(2).setText(_translate("MainWindow", "X2"))

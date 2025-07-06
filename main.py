@@ -25,21 +25,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.ramTable.cellClicked.connect(self.save_old_value)
         self._old_ram_value = ""
         # Tạo figure và canvas
-        self.fig, self.ax = simulate.plt.subplots(figsize=(30, 18))
-        # simulate.show_background(self.ax, 'named.jpg')
-        simulate.show_polygons(self.ax, simulate.polygons)
-        simulate.show_lines(self.ax, simulate.lines)
-        simulate.show_points(self.ax, simulate.points)       
-        self.ax.invert_yaxis()
-        self.ax.set_aspect('equal')
-        # self.ax.autoscale(enable=True)
-        self.ax.axis('off')
+        self.fig, self.ax = simulate.setup_simulation_plot(figsize=(30, 18))
         self.canvas = FigureCanvas(self.fig)
-
-
         self.fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         
-
         scale = 0.72
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
@@ -60,9 +49,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.close_bottom.clicked.connect(lambda: handle_close_file(self.ui))
         self.ui.save_bottom.clicked.connect(lambda: handle_save_file(self.ui))
         self.ui.run_all_bottom.clicked.connect(self.simulate_all) 
-        self.ui.run_step_bottom.clicked.connect(self.simulate_step) 
+        self.ui.run_by_step_bottom.clicked.connect(self.run_by_step_with_simulate) 
         self.ui.clean_bottom.clicked.connect(self.handle_clean)
-        self.ui.help_bottom.clicked.connect(self.show_instruction)
+        self.ui.instruction_bottom.clicked.connect(self.show_instruction)
        # --- Thêm code mặc định ---
         default_code = (
             "ADD X1,X2,X3\n"
@@ -119,6 +108,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def save_old_value(self, row, col):
         item = self.ui.ramTable.item(row, col)
         self._old_ram_value = item.text() if item else ""
+
     # Xử lý sự kiện khi người dùng thay đổi giá trị trong bảng RAM
     def handle_ram_item_changed(self, item):
         row = item.row()
@@ -176,6 +166,7 @@ class MainWindow(QtWidgets.QMainWindow):
             'M3', 'Flags', 'AND1', 'AND2', 'OR',
             'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
         ]
+
         total_lines = self.ui.codeEditor.document().blockCount()
         if not hasattr(self, 'current_step'):
             self.current_step = 0
@@ -221,7 +212,7 @@ class MainWindow(QtWidgets.QMainWindow):
         bits.reset_data()
         self.canvas.draw_idle()
         
-    def simulate_step(self):
+    def run_by_step_with_simulate(self):
         # Danh sách các block theo thứ tự animation
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
@@ -279,11 +270,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Animate block/line hiện tại
         if self.ani:
             self.ani.event_source.stop()
-        self.ani = simulate.animate_square_from_block(
+        self.ani = simulate.run_by_step_with_animate(
             self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=100, speed=10
         )
-
-
 
         if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
             rd= bits.data['Reg']['WriteRegister']
@@ -320,6 +309,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Xóa highlight dòng code nếu có
         self.ui.codeEditor.setExtraSelections([])
 
+        if hasattr(self, 'highlighted_lines'):
+            simulate.clear_highlighted_lines(self.highlighted_lines)
+            
         # Đặt lại cờ NZCV về mặc định (nếu có)
         if hasattr(self.ui, "n_flag"):
             self.ui.n_flag.setStyleSheet("background-color: lightgray; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
@@ -384,7 +376,5 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = MainWindow()
-
     w.showMaximized()
-
     sys.exit(app.exec_())
