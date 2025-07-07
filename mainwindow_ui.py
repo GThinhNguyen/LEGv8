@@ -456,7 +456,7 @@ class Ui_MainWindow(object):
         self.ramTable.setObjectName("ramTable")
         self.ramTable.setColumnCount(4)
         self.ramTable.setRowCount(512)
-        self.ramTable.setHorizontalHeaderLabels(["ByteAddress", "ByteValue", "WordAddress", "WordValue"])
+        self.ramTable.setHorizontalHeaderLabels(["ByteAddr", "ByteValue", "WordAddr", "   DoubleWordValue   "])
         for i in range(512):
             # ByteAddress
             item_addr = QTableWidgetItem(str(i))
