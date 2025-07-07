@@ -49,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.close_button.clicked.connect(lambda: handle_close_file(self.ui))
         self.ui.save_button.clicked.connect(lambda: handle_save_file(self.ui))
         self.ui.run_all_button.clicked.connect(self.run_all)
-        self.ui.run_by_step_button.clicked.connect(self.run_by_step_with_simulate)
+        self.ui.run_by_step_button.clicked.connect(self.handle_run_by_step_click)
         self.ui.clean_button.clicked.connect(self.handle_clean)
         self.ui.instruction_button.clicked.connect(self.show_instruction)
         self.ui.animate_button.clicked.connect(self.handle_animate_button)
@@ -78,10 +78,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if col == 0 and row != 31:
             try:
                 val = int(item.text())
-                if not (-2147483648 <= val <= 2147483647):
+                if not (-9223372036854775808 <= val <= 9223372036854775807):
                     raise ValueError
             except Exception:
-                QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ cho phép nhập số nguyên có dấu 32 bit (-2147483648 đến 2147483647).")
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ cho phép nhập số nguyên có dấu 64 bit (-9223372036854775808 đến 9223372036854775807).")
                 # Quay lại giá trị trước đó
                 item.setText(getattr(self, "_old_register_value", "0"))
                 return
@@ -360,6 +360,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Tăng bước cho lần chạy tiếp theo
         self.current_step += 1
+    def handle_run_by_step_click(self):
+        """Xử lý khi người dùng nhấn nút Run by Step"""
+        if hasattr(self, 'animation_running') and self.animation_running:
+            # Nếu đang chạy animation, chỉ chạy một bước rồi tiếp tục animation
+            self.run_by_step_with_simulate(on_finished=self.run_all_with_simulate)
+        else:
+            # Chạy một bước bình thường
+            self.run_by_step_with_simulate()
 
     def run_by_line(self):
         order = [
@@ -501,8 +509,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "<hr>"
             "<span class='note'><b>Lưu ý:</b><br>"
             "- <b>XZR (X31)</b> luôn bằng 0, không thể thay đổi.<br>"
-            "- RAM 32 bit, nhập ByteValue là 8 ký tự 0/1.<br>"
-            "- Thanh ghi 32 bit, nhập giá trị từ -2147483648 đến 2147483647. Kết quả phép tính cho phép bị tràn số.<br>"
+            "- RAM 32 bit có dấu, nhập ByteValue là 8 ký tự 0/1.<br>"
+            "- Thanh ghi 64 bit có dấu, nhập giá trị từ -9223372036854775808 đến 9223372036854775807. Kết quả phép tính cho phép bị tràn số.<br>"
             "- Chỉ WordValue dòng đầu mỗi word mới cho phép chỉnh sửa.<br>"
             "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 4 từ 0 đến 508 (tương ứng với 128 dòng RAM).<br>"
             "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và cách nhau 4 byte.<br>"

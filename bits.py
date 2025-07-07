@@ -48,7 +48,7 @@ def bin_to_signed(s):
     return value
 
 def parse_signed(val):
-    if isinstance(val, str) and set(val) <= {'0', '1'} and len(val) == 32:
+    if isinstance(val, str) and set(val) <= {'0', '1'} and len(val) == 64:
         return bin_to_signed(val)
     try:
         return int(val)
@@ -68,7 +68,7 @@ def parse_reg(p: str) -> int:
     """
     Chuyển tên thanh ghi thành số:
     - 'Xn' -> n
-    - 'Wn' -> n (lower 32-bit)
+    - 'Wn' -> n (lower 64-bit)
     - 'XZR', 'WZR', 'SP', 'WSP' -> 31
     - 'FP' -> 29 (frame pointer)
     - 'LR' -> 30 (link register)
@@ -368,33 +368,33 @@ def get_bits_for_path(block, ui = None):
         return ('0',)
 
     if block == 'ALU':
-        a = parse_signed(data['ALU']['ReadData1'])   # signed 32-bit
-        b = parse_signed(data['ALU']['ReadData2'])   # signed 32-bit
+        a = parse_signed(data['ALU']['ReadData1'])   # signed 64-bit
+        b = parse_signed(data['ALU']['ReadData2'])   # signed 64-bit
         op = data['ALU']['ALUControl']
 
-        MASK_32 = 0xFFFFFFFF
-        MAX_UINT = MASK_32
-        MAX_INT =  0x7FFFFFFF
-        MIN_INT = -0x80000000
+        MASK_64 = 0xFFFFFFFFFFFFFFFF
+        MAX_UINT = MASK_64
+        MAX_INT =  0x7FFFFFFFFFFFFFFF
+        MIN_INT = -0x8000000000000000
 
-        # Chuyển sang unsigned 32-bit:
-        def to_u32(x):
-            return x & MASK_32
+        # Chuyển sang unsigned 64-bit:
+        def to_u64(x):
+            return x & MASK_64
 
-        # Chuyển kết quả 32-bit sang signed:
-        def to_s32(x):
-            x = x & MASK_32
-            return x if x <= MAX_INT else x - (1 << 32)
+        # Chuyển kết quả 64-bit sang signed:
+        def to_s64(x):
+            x = x & MASK_64
+            return x if x <= MAX_INT else x - (1 << 64)
 
-        a_u = to_u32(a)
-        b_u = to_u32(b)
+        a_u = to_u64(a)
+        b_u = to_u64(b)
 
         raw = 0
         if op == '0010':         # ADD
             raw = a_u + b_u
         elif op == '0110':       # SUB = a - b
-            # thực chất: a + (2^32 - b)
-            raw = (a_u - b_u) & MASK_32
+            # thực chất: a + (2^64 - b)
+            raw = (a_u - b_u) & MASK_64
         elif op == '0111':       # MOV (res = b)
             raw = b_u
         elif op == '0000':       # AND
@@ -406,8 +406,8 @@ def get_bits_for_path(block, ui = None):
         else:
             raw = 0
 
-        # Kết quả thực tế (signed 32-bit):
-        res = to_s32(raw)
+        # Kết quả thực tế (signed 64-bit):
+        res = to_s64(raw)
 
         # Z flag: 1 nếu res == 0
         zeroFlag = 1 if res == 0 else 0
