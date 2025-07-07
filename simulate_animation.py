@@ -148,7 +148,7 @@ CURRENT_ANIMATION_SPEED = 10  # Giá trị mặc định
 def set_animation_speed(speed):
     """Cập nhật tốc độ animation ngay lập tức"""
     global CURRENT_ANIMATION_SPEED
-    CURRENT_ANIMATION_SPEED = speed
+    CURRENT_ANIMATION_SPEED = speed ** 1.5
     print(f"Animation speed updated to: {speed}")
 
 # Sửa hàm update_square_position
