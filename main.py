@@ -19,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
         self.current_line_idx = 0
         self.current_step = 0
-        self.check_run_new_line = False  
+        self.check_in_checkpoint = 0  
         self.ui.registerShow.itemChanged.connect(self.handle_register_item_changed)
         self.ui.registerShow.cellClicked.connect(self.save_old_register_value)
         self.ui.ramTable.itemChanged.connect(self.handle_ram_item_changed)
@@ -427,7 +427,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         simulate.clear_animated_squares(self.ax)
         self.canvas.draw_idle()
-        while self.current_line_idx < total_lines and not self.ui.codeEditor.is_breakpoint(self.current_line_idx):
+        while self.current_line_idx < total_lines and ((not self.ui.codeEditor.is_breakpoint(self.current_line_idx)) or self.check_in_checkpoint==0):
+            self.check_in_checkpoint += 1
             while self.current_step < len(order):
                 block = order[self.current_step]
                 simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
@@ -441,6 +442,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_line_idx = int(bits.data['PC']['Inp0'])//4
             self.highlight_line(self.current_line_idx)
         # Xóa highlight đường xanh nếu có
+        self.check_in_checkpoint = 0
         if hasattr(self, 'highlighted_lines'):
             simulate.clear_highlighted_lines(self.highlighted_lines)
             del self.highlighted_lines
