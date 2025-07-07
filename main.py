@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.animate_button.clicked.connect(self.handle_animate_button)
         self.ui.speed_slider.valueChanged.connect(self.update_animation_speed)
         self.ui.run_by_line_button.clicked.connect(self.run_by_line)
-
+        self.ui.run_to_checkpoint_button.clicked.connect(self.run_to_checkpoint)
         
        # --- Thêm code mặc định ---
         default_code = (
@@ -242,7 +242,7 @@ class MainWindow(QtWidgets.QMainWindow):
         import simulate_animation  # Import ở đây để tránh import vòng
         simulate_animation.set_animation_speed(value)
 
-    def run_all_with_simulate(self, stop_after_line=False):
+    def run_all_with_simulate(self):
         """
         Chạy toàn bộ chương trình từng bước với hiệu ứng animate (dùng run_by_step_with_simulate).
         """
@@ -262,12 +262,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.current_line_idx = 0
                 self.highlight_line(self.current_line_idx)
                 bits.reset_data()
-                self.animation_running = False
-                self.ui.animate_button.setText("Animate")
-                self.ui.animate_button.setStyleSheet("")
-                return
-            # Nếu chỉ muốn chạy hết 1 dòng thì dừng lại khi current_step == 0 (tức là vừa xong 1 dòng)
-            if stop_after_line and self.current_step == 0 and hasattr(step_and_continue, "started"):
                 self.animation_running = False
                 self.ui.animate_button.setText("Animate")
                 self.ui.animate_button.setStyleSheet("")
@@ -383,25 +377,49 @@ class MainWindow(QtWidgets.QMainWindow):
             self.highlight_line(self.current_line_idx)
             bits.reset_data()
             return
-        if self.check_run_new_line == True and self.current_step >= len(order):
-            # Nếu nút run_by_line được bấm lần nữa và đang ở 'M4' thì chạy dòng tiếp theo
-            self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
-            self.highlight_line(self.current_line_idx)
-            self.check_run_new_line = False
-            simulate.clear_animated_squares(self.ax) 
-            self.current_step = 0
+        simulate.clear_animated_squares(self.ax)
+        self.canvas.draw_idle()
+        while self.current_step < len(order):
+            block = order[self.current_step]
+            simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
+            if block == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
+                rd= bits.data['Reg']['WriteRegister']
+                rd_value = bits.data['Reg']['WriteData']
+                if int(rd, 2) != 31:
+                    self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+            self.current_step += 1
+        self.current_step = 0
+        self.current_line_idx = int(bits.data['PC']['Inp0'])//4
+        self.highlight_line(self.current_line_idx)
+        # Xóa highlight đường xanh nếu có
+        if hasattr(self, 'highlighted_lines'):
+            simulate.clear_highlighted_lines(self.highlighted_lines)
+            del self.highlighted_lines
         if self.ui.animate_button.isChecked():
-            def run_next_step():
-                if self.current_step < len(order):
-                    self.run_by_step_with_simulate(on_finished=run_next_step)
-                else:
-                    self.canvas.draw_idle()
-                    self.check_run_new_line = True
-            run_next_step()
-        else:
-            # Nếu tắt animate, xóa hết animation hiện có trước khi chạy logic
+            self.run_all_with_simulate()
+
+    def run_to_checkpoint(self):
+        order = [
+            'PC', 'P1', 'IM', 'P2', 'Control',
+            'P3', 'M1', 'Reg', 'P5',  
+            'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
+            'M3', 'Flags', 'AND1', 'AND2', 'OR',
+            'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
+        ]
+        total_lines = self.ui.codeEditor.document().blockCount()
+
+
+        if self.current_line_idx >= total_lines:
             simulate.clear_animated_squares(self.ax)
-            self.canvas.draw_idle()
+            QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+            self.current_line_idx = 0
+            self.highlight_line(self.current_line_idx)
+            bits.reset_data()
+            return
+
+        simulate.clear_animated_squares(self.ax)
+        self.canvas.draw_idle()
+        while self.current_line_idx < total_lines and not self.ui.codeEditor.is_breakpoint(self.current_line_idx):
             while self.current_step < len(order):
                 block = order[self.current_step]
                 simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
@@ -414,10 +432,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_step = 0
             self.current_line_idx = int(bits.data['PC']['Inp0'])//4
             self.highlight_line(self.current_line_idx)
-            # Xóa highlight đường xanh nếu có
-            if hasattr(self, 'highlighted_lines'):
-                simulate.clear_highlighted_lines(self.highlighted_lines)
-                del self.highlighted_lines
+        # Xóa highlight đường xanh nếu có
+        if hasattr(self, 'highlighted_lines'):
+            simulate.clear_highlighted_lines(self.highlighted_lines)
+            del self.highlighted_lines
+        if self.ui.animate_button.isChecked():
+            self.run_all_with_simulate()
 
     def handle_clean(self):
         # Đưa giá trị thanh ghi về mặc định (0)
