@@ -78,10 +78,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if col == 0 and row != 31:
             try:
                 val = int(item.text())
-                if not (-2147483648 <= val <= 2147483647):
+                if not (-9223372036854775808 <= val <= 9223372036854775807):
                     raise ValueError
             except Exception:
-                QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ cho phép nhập số nguyên có dấu 32 bit (-2147483648 đến 2147483647).")
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ cho phép nhập số nguyên có dấu 64 bit (-9223372036854775808 đến 9223372036854775807).")
                 # Quay lại giá trị trước đó
                 item.setText(getattr(self, "_old_register_value", "0"))
                 return
@@ -508,10 +508,10 @@ class MainWindow(QtWidgets.QMainWindow):
             "<hr>"
             "<span class='note'><b>Lưu ý:</b><br>"
             "- <b>XZR (X31)</b> luôn bằng 0, không thể thay đổi.<br>"
-            "- RAM 32 bit, nhập ByteValue là 8 ký tự 0/1.<br>"
-            "- Thanh ghi 32 bit, nhập giá trị từ -2147483648 đến 2147483647. Kết quả phép tính cho phép bị tràn số.<br>"
-            "- Chỉ WordValue dòng đầu mỗi word mới cho phép chỉnh sửa.<br>"
-            "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 4 từ 0 đến 508 (tương ứng với 128 dòng RAM).<br>"
+            "- RAM 64 bit, nhập ByteValue là 8 ký tự 0/1 cho mỗi byte, mỗi word gồm 8 byte.<br>"
+            "- Thanh ghi 64 bit, nhập giá trị từ -9223372036854775808 đến 9223372036854775807. Kết quả phép tính cho phép bị tràn số.<br>"
+            "- Chỉ DoublewordValue dòng đầu mỗi word (8 byte) mới cho phép chỉnh sửa.<br>"
+            "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 8 từ 0 đến 1016 (tương ứng với 128 dòng RAM).<br>"
             "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và cách nhau 4 byte.<br>"
             "- Các lệnh nhánh (B, CBZ, B.cond) trường #imm là số dòng nhảy, chiều dương hướng xuống.<br>"
             "- Có thể dùng dấu <code>//</code> để chú thích trong code, nhưng phải đảm bảo dòng nào cũng có code.</span>"
