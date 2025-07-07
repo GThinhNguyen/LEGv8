@@ -320,6 +320,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_line_idx = 0
             self.highlight_line(self.current_line_idx)
             bits.reset_data()
+            simulate.clear_animated_squares(self.ax)
+            self.canvas.draw_idle()
             return
 
         # Highlight dòng code hiện tại
