@@ -338,54 +338,54 @@ class Ui_MainWindow(object):
         # Layout cho setting_frame: dùng QGridLayout để chia 2 cột
         self.setting_layout = QtWidgets.QGridLayout(self.setting_frame)
 
-        self.open_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.open_bottom.setObjectName("open_bottom")
-        self.setting_layout.addWidget(self.open_bottom, 0, 0)
+        self.open_button = QtWidgets.QPushButton(self.setting_frame)
+        self.open_button.setObjectName("open_button")
+        self.setting_layout.addWidget(self.open_button, 0, 0)
 
-        self.close_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.close_bottom.setObjectName("close_bottom")
-        self.setting_layout.addWidget(self.close_bottom, 1, 0)
+        self.close_button = QtWidgets.QPushButton(self.setting_frame)
+        self.close_button.setObjectName("close_button")
+        self.setting_layout.addWidget(self.close_button, 1, 0)
 
-        self.save_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.save_bottom.setObjectName("save_bottom")
-        self.setting_layout.addWidget(self.save_bottom, 2, 0)
+        self.save_button = QtWidgets.QPushButton(self.setting_frame)
+        self.save_button.setObjectName("save_button")
+        self.setting_layout.addWidget(self.save_button, 2, 0)
 
-        self.instruction_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.instruction_bottom.setObjectName("instruction_bottom")
-        self.setting_layout.addWidget(self.instruction_bottom, 3, 0)
+        self.instruction_button = QtWidgets.QPushButton(self.setting_frame)
+        self.instruction_button.setObjectName("instruction_button")
+        self.setting_layout.addWidget(self.instruction_button, 3, 0)
 
-        self.last_step_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.last_step_bottom.setObjectName("last_step_bottom")
-        self.setting_layout.addWidget(self.last_step_bottom, 0, 1)
+        self.last_step_button = QtWidgets.QPushButton(self.setting_frame)
+        self.last_step_button.setObjectName("last_step_button")
+        self.setting_layout.addWidget(self.last_step_button, 0, 1)
         
-        self.last_line_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.last_line_bottom.setObjectName("last_line_bottom")
-        self.setting_layout.addWidget(self.last_line_bottom, 1, 1)
+        self.last_line_button = QtWidgets.QPushButton(self.setting_frame)
+        self.last_line_button.setObjectName("last_line_button")
+        self.setting_layout.addWidget(self.last_line_button, 1, 1)
 
-        self.clean_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.clean_bottom.setObjectName("clean_bottom")
-        self.setting_layout.addWidget(self.clean_bottom, 2, 1)
+        self.clean_button = QtWidgets.QPushButton(self.setting_frame)
+        self.clean_button.setObjectName("clean_button")
+        self.setting_layout.addWidget(self.clean_button, 2, 1)
 
         self.animate_button = QtWidgets.QPushButton(self.setting_frame)
         self.animate_button.setObjectName("animate_button")
         self.animate_button.setCheckable(True)
         self.setting_layout.addWidget(self.animate_button, 3, 1)
 
-        self.run_by_step_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.run_by_step_bottom.setObjectName("run_by_step_bottom")
-        self.setting_layout.addWidget(self.run_by_step_bottom, 0, 2)
+        self.run_by_step_button = QtWidgets.QPushButton(self.setting_frame)
+        self.run_by_step_button.setObjectName("run_by_step_button")
+        self.setting_layout.addWidget(self.run_by_step_button, 0, 2)
 
-        self.run_by_line_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.run_by_line_bottom.setObjectName("run_by_line_bottom")
-        self.setting_layout.addWidget(self.run_by_line_bottom, 1, 2)
+        self.run_by_line_button = QtWidgets.QPushButton(self.setting_frame)
+        self.run_by_line_button.setObjectName("run_by_line_button")
+        self.setting_layout.addWidget(self.run_by_line_button, 1, 2)
 
-        self.run_to_checkpoint_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.run_to_checkpoint_bottom.setObjectName("run_to_checkpoint_bottom")
-        self.setting_layout.addWidget(self.run_to_checkpoint_bottom, 2, 2)  # ← SỬA ĐÂY
+        self.run_to_checkpoint_button = QtWidgets.QPushButton(self.setting_frame)
+        self.run_to_checkpoint_button.setObjectName("run_to_checkpoint_button")
+        self.setting_layout.addWidget(self.run_to_checkpoint_button, 2, 2)  # ← SỬA ĐÂY
 
-        self.run_all_bottom = QtWidgets.QPushButton(self.setting_frame)
-        self.run_all_bottom.setObjectName("run_all_bottom")
-        self.setting_layout.addWidget(self.run_all_bottom, 3, 2)
+        self.run_all_button = QtWidgets.QPushButton(self.setting_frame)
+        self.run_all_button.setObjectName("run_all_button")
+        self.setting_layout.addWidget(self.run_all_button, 3, 2)
 
         # Thêm thanh trượt điều chỉnh tốc độ
         self.speed_label = QtWidgets.QLabel("Speed:", self.setting_frame)
@@ -567,18 +567,18 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "LEGv8 Simulator"))
-        self.open_bottom.setText(_translate("MainWindow", "Open file"))
-        self.close_bottom.setText(_translate("MainWindow", "Close file"))
-        self.save_bottom.setText(_translate("MainWindow", "Save"))
+        self.open_button.setText(_translate("MainWindow", "Open file"))
+        self.close_button.setText(_translate("MainWindow", "Close file"))
+        self.save_button.setText(_translate("MainWindow", "Save"))
         self.animate_button.setText(_translate("MainWindow", "Animate"))
-        self.run_by_step_bottom.setText(_translate("MainWindow", "Run by step"))
-        self.run_by_line_bottom.setText(_translate("MainWindow", "Run by line"))
-        self.run_to_checkpoint_bottom.setText(_translate("MainWindow", "Run to checkpoint"))
-        self.run_all_bottom.setText(_translate("MainWindow", "Run all"))
-        self.last_step_bottom.setText(_translate("MainWindow", "Last step"))
-        self.last_line_bottom.setText(_translate("MainWindow", "Last line"))
-        self.clean_bottom.setText(_translate("MainWindow", "Clean"))
-        self.instruction_bottom.setText(_translate("MainWindow", "Instructions"))
+        self.run_by_step_button.setText(_translate("MainWindow", "Run by step"))
+        self.run_by_line_button.setText(_translate("MainWindow", "Run by line"))
+        self.run_to_checkpoint_button.setText(_translate("MainWindow", "Run to checkpoint"))
+        self.run_all_button.setText(_translate("MainWindow", "Run all"))
+        self.last_step_button.setText(_translate("MainWindow", "Last step"))
+        self.last_line_button.setText(_translate("MainWindow", "Last line"))
+        self.clean_button.setText(_translate("MainWindow", "Clean"))
+        self.instruction_button.setText(_translate("MainWindow", "Instructions"))
 
 
 

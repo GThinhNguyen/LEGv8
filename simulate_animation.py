@@ -143,8 +143,21 @@ def _create_new_square(ax, key, path, display_bit_str, bit_str, to_key, zorder):
     ax.existing_squares[key] = sq
     return sq
 
-def update_square_position(sq, speed):
+CURRENT_ANIMATION_SPEED = 10  # Giá trị mặc định
+
+def set_animation_speed(speed):
+    """Cập nhật tốc độ animation ngay lập tức"""
+    global CURRENT_ANIMATION_SPEED
+    CURRENT_ANIMATION_SPEED = speed
+    print(f"Animation speed updated to: {speed}")
+
+# Sửa hàm update_square_position
+def update_square_position(sq, speed=None):
     """Cập nhật vị trí của một square"""
+    global CURRENT_ANIMATION_SPEED
+    # Sử dụng tốc độ hiện tại nếu không truyền vào
+    speed_to_use = CURRENT_ANIMATION_SPEED
+    
     path = sq['path']
     distance_travelled = sq['distance_travelled']
     seg_lens = sq.get('seg_lens', np.linalg.norm(np.diff(path, axis=0), axis=1))
@@ -168,107 +181,93 @@ def update_square_position(sq, speed):
     height = sq['patch'].get_height()
     sq['patch'].set_x(pos[0] - width)
     sq['patch'].set_y(pos[1])
-    sq['text'].set_position((pos[0] - width/2, pos[1] + height/2))  # Thay vì (pos[0] - width, pos[1])
+    sq['text'].set_position((pos[0] - width/2, pos[1] + height/2))
 
-    # Cập nhật distance
+    # Cập nhật distance sử dụng tốc độ hiện tại
     if distance_travelled < total_len:
-        sq['distance_travelled'] = min(total_len, distance_travelled + speed)
+        sq['distance_travelled'] = min(total_len, distance_travelled + speed_to_use)
 
-def run_by_step_with_animate(ax, start_block, lines, line_next, ui, interval=2, speed=15, zorder=10):
+
+def run_by_step_with_animate(
+    ax, start_block, lines, line_next, ui, interval=2, speed=15, zorder=10, on_finished=None
+):
     """
-    Chạy animation cho một block với tối ưu performance
+    Chạy animation cho một block với tối ưu performance.
+    - ax: matplotlib axes
+    - start_block: block bắt đầu
+    - lines: dict các đường đi
+    - line_next: dict các block tiếp theo
+    - ui: dữ liệu giao diện
+    - interval: thời gian giữa các frame (ms)
+    - speed: tốc độ di chuyển square
+    - zorder: thứ tự vẽ
+    - on_finished: callback khi hoàn thành
     """
+    # Đưa tất cả squares về cuối đường (reset trạng thái)
     animation_manager = AnimationManager(ax)
     animation_manager.move_squares_to_end()
 
-    # Lấy dữ liệu và xử lý logic
+    # Lấy dữ liệu bit và xử lý logic cho block hiện tại
     bit_tuple = bits.get_bits_for_path(start_block, ui)
     logic_step_from_block(start_block, lines, line_next, ui)
 
-    # Tạo squares
+    # Tạo danh sách các squares sẽ di chuyển
     move_squares = []
+    # Lấy các block tiếp theo hợp lệ
     next_blocks = [n for n in line_next.get(start_block, []) if n in lines]
-    
+
     for idx, next_name in enumerate(next_blocks):
         next_path = lines[next_name]
-        
-        # Lấy bit string
+        # Lấy bit string phù hợp cho từng nhánh
         if isinstance(bit_tuple, (tuple, list)):
             bit_str = bit_tuple[idx] if idx < len(bit_tuple) else bit_tuple[-1]
         else:
             bit_str = str(bit_tuple)
-            
-        # Tạo square
+        # Tạo square và thêm vào danh sách
         sq = create_animated_square(ax, next_path, start_block, next_name, bit_str, zorder)
         move_squares.append(sq)
 
-    def update(frame):
-        for sq in move_squares:
-            update_square_position(sq, speed)
-        # KHÔNG gọi ax.figure.canvas.draw_idle() ở đây!
-        return [sq['patch'] for sq in move_squares] + [sq['text'] for sq in move_squares]
+    # Cờ đánh dấu đã hoàn thành cho từng square
+    finished_flags = [False] * len(move_squares)
 
+    def update(frame):
+        """
+        Hàm update cho animation, di chuyển các squares.
+        """
+        all_done = True
+        for i, sq in enumerate(move_squares):
+            update_square_position(sq, speed)
+            # Kiểm tra đã đến cuối đường chưa
+            if sq['distance_travelled'] < sq['total_len']:
+                all_done = False
+            else:
+                finished_flags[i] = True
+                
+        # Thêm debug
+        if all_done:
+            print(f"Animation done for block: {start_block}")
+            
+        # CÁCH SỬA: Gọi callback trực tiếp và dừng animation khi xong
+        if all_done and on_finished and not getattr(update, "_called", False):
+            update._called = True
+            print("Calling on_finished callback")
+            # Dừng animation trước khi gọi callback
+            ani.event_source.stop()
+            # Gọi callback trực tiếp
+            on_finished()
+            
+        # Trả về các artist để vẽ lại
+        return [sq['patch'] for sq in move_squares] + [sq['text'] for sq in move_squares]
+    
+
+    # Tạo animation FuncAnimation
     ani = animation.FuncAnimation(
-        ax.figure, update, 
-        interval=interval,  # Đặt interval tối thiểu 50ms
-        blit=False,         # Nếu muốn mượt hơn, có thể thử blit=True
+        ax.figure, update,
+        interval=interval,
+        blit=False,
         cache_frame_data=False
     )
     return ani
-
-def run_all_with_animate(ax, start_blocks, lines, line_next, ui, interval=20, speed=30, zorder=10, delay_between_animations=500):
-    """
-    Chạy animation liên tục cho nhiều blocks
-    """
-    if not start_blocks:
-        return None
-    
-    current_index = [0]
-    current_animation = [None]
-    
-    def run_next_animation():
-        if current_index[0] >= len(start_blocks):
-            print("Đã hoàn thành tất cả animation!")
-            ax.figure.canvas.draw_idle()
-            return
-        
-        current_block = start_blocks[current_index[0]]
-        print(f"Đang chạy animation cho block: {current_block}")
-        
-        # Chạy animation
-        ani = run_by_step_with_animate(ax, current_block, lines, line_next, ui, interval, speed, zorder)
-        current_animation[0] = ani
-        
-        # Tính thời gian animation
-        next_blocks = line_next.get(current_block, [])
-        animation_time = _calculate_animation_time(next_blocks, lines, speed, interval, delay_between_animations)
-        
-        current_index[0] += 1
-        
-        # Lên lịch animation tiếp theo
-        def schedule_next():
-            run_next_animation()
-        
-        timer = ax.figure.canvas.new_timer(interval=animation_time)
-        timer.single_shot = True
-        timer.add_callback(schedule_next)
-        timer.start()
-    
-    run_next_animation()
-    return current_animation[0]
-
-def _calculate_animation_time(next_blocks, lines, speed, interval, delay):
-    """Tính thời gian animation dựa trên độ dài đường"""
-    max_length = 0
-    for next_name in next_blocks:
-        if next_name in lines:
-            line_data = np.array(lines[next_name])
-            if line_data.ndim == 2 and line_data.shape[0] >= 2:
-                seg_lens = np.linalg.norm(np.diff(line_data, axis=0), axis=1)
-                total_len = np.sum(seg_lens)
-                max_length = max(max_length, total_len)
-    
-    return int((max_length / speed) * interval) + delay if max_length > 0 else delay
 
 def clear_animated_squares(ax):
     """Xóa tất cả animated squares"""

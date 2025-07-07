@@ -44,14 +44,17 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         self.ui.sim_frame.setLayout(layout)
         layout.addWidget(self.canvas)
+        self.ui.open_button.clicked.connect(lambda: handle_open_file(self.ui))
+        self.ui.close_button.clicked.connect(lambda: handle_close_file(self.ui))
+        self.ui.save_button.clicked.connect(lambda: handle_save_file(self.ui))
+        self.ui.run_all_button.clicked.connect(self.run_all)
+        self.ui.run_by_step_button.clicked.connect(self.run_by_step_with_simulate)
+        self.ui.clean_button.clicked.connect(self.handle_clean)
+        self.ui.instruction_button.clicked.connect(self.show_instruction)
+        self.ui.animate_button.clicked.connect(self.handle_animate_button)
+        self.ui.speed_slider.valueChanged.connect(self.update_animation_speed)
 
-        self.ui.open_bottom.clicked.connect(lambda: handle_open_file(self.ui))
-        self.ui.close_bottom.clicked.connect(lambda: handle_close_file(self.ui))
-        self.ui.save_bottom.clicked.connect(lambda: handle_save_file(self.ui))
-        self.ui.run_all_bottom.clicked.connect(self.simulate_all) 
-        self.ui.run_by_step_bottom.clicked.connect(self.run_by_step_with_simulate) 
-        self.ui.clean_bottom.clicked.connect(self.handle_clean)
-        self.ui.instruction_bottom.clicked.connect(self.show_instruction)
+        
        # --- Thêm code mặc định ---
         default_code = (
             "ADD X1,X2,X3\n"
@@ -158,7 +161,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if byte_item:
                     byte_item.setText(byte_str)
 
-    def simulate_all(self):
+    def run_all(self):
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
             'P3', 'M1', 'Reg', 'P5',  
@@ -211,8 +214,66 @@ class MainWindow(QtWidgets.QMainWindow):
         self.highlight_line(self.current_line_idx)
         bits.reset_data()
         self.canvas.draw_idle()
+
+    def handle_animate_button(self):
+        """
+        Nếu đang chạy animation thì dừng lại, nếu không thì bắt đầu chạy animation toàn bộ.
+        """
+        if hasattr(self, 'animation_running') and self.animation_running:
+            # Đang chạy animation, dừng lại
+            self.animation_running = False
+            if self.ani:
+                self.ani.event_source.stop()
+                self.ani = None
+            self.ui.animate_button.setText("Animate")
+            self.ui.animate_button.setStyleSheet("")  # Reset style nếu muốn
+        else:
+            # Bắt đầu chạy animation toàn bộ
+            self.animation_running = True
+            self.ui.animate_button.setText("Pause")
+            self.ui.animate_button.setStyleSheet("background-color: #f44336")
+            self.run_all_with_simulate()
+
+
+    def update_animation_speed(self, value):
+        """Cập nhật tốc độ animation khi thanh trượt thay đổi"""
+        import simulate_animation  # Import ở đây để tránh import vòng
+        simulate_animation.set_animation_speed(value)
+
+    def run_all_with_simulate(self):
+        """
+        Chạy toàn bộ chương trình từng bước với hiệu ứng animate (dùng run_by_step_with_simulate).
+        """
+
+        total_lines = self.ui.codeEditor.document().blockCount()
+        # Reset về đầu nếu đang ở cuối
+        if not hasattr(self, 'current_step'):
+            self.current_step = 0
+        if not hasattr(self, 'current_line_idx'):
+            self.current_line_idx = 0
+
+        def step_and_continue():
+            if not getattr(self, 'animation_running', False):
+                return
+            if self.current_line_idx >= total_lines:
+                QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+                self.current_line_idx = 0
+                self.highlight_line(self.current_line_idx)
+                bits.reset_data()
+                self.animation_running = False
+                self.ui.animate_button.setText("Animate")
+                self.ui.animate_button.setStyleSheet("")
+                return
+            # Chạy một bước, truyền callback để gọi tiếp khi animation xong
+            self.run_by_step_with_simulate(on_finished=step_and_continue)
+
+        step_and_continue()
         
-    def run_by_step_with_simulate(self):
+        
+    def run_by_step_with_simulate(self, on_finished=None):
+        """
+        Chạy từng bước mô phỏng với hiệu ứng animate, cập nhật giao diện và trạng thái.
+        """
         # Danh sách các block theo thứ tự animation
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
@@ -223,14 +284,18 @@ class MainWindow(QtWidgets.QMainWindow):
         ]
 
         total_lines = self.ui.codeEditor.document().blockCount()
+
         # Khởi tạo biến đếm bước nếu chưa có
         if not hasattr(self, 'current_step'):
             self.current_step = 0
-        # Nếu đã hết order thì quay lại đầu
+
+        # Nếu đã hết order thì quay lại đầu, cập nhật dòng lệnh tiếp theo
         if self.current_step >= len(order):
-            simulate.clear_animated_squares(self.ax) #chạy hết 1 vòng thì xóa các khối vuông
+            simulate.clear_animated_squares(self.ax)  # Xóa các khối vuông khi chạy hết 1 vòng
             self.current_step = 0
-            self.current_line_idx = int(bits.data['PC']['Inp0'])//4
+            self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
+
+        # Kiểm tra nếu không còn lệnh để thực thi
         if bits.data['P2']['Inp0'] == 'Khong co lenh':
             QtWidgets.QMessageBox.warning(self, "Lỗi", "Không có lệnh tại địa chỉ này!\nDừng mô phỏng.")
             self.current_step = 0
@@ -239,48 +304,56 @@ class MainWindow(QtWidgets.QMainWindow):
             self.highlight_line(self.current_line_idx)
             self.canvas.draw_idle()
             return
+
+        # Nếu đã chạy hết các dòng code
         if self.current_line_idx >= total_lines:
-            QtWidgets.QMessageBox.information(self, "Kết thúc",
-                "Đã chạy hết chương trình!")
-            # reset về đầu
+            QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
             self.current_line_idx = 0
             self.highlight_line(self.current_line_idx)
             bits.reset_data()
             return
-        
+
+        # Highlight dòng code hiện tại
         self.highlight_line(self.current_line_idx)
         block = order[self.current_step]
 
-        # Xóa highlight cũ
+        # Xóa highlight cũ trên sơ đồ
         if hasattr(self, 'highlighted_lines'):
             simulate.clear_highlighted_lines(self.highlighted_lines)
 
-        # Highlight các line tiếp theo (nếu không phải bước cuối)
+        # Highlight các line tiếp theo trên sơ đồ (nếu không phải bước cuối)
         if self.current_step + 1 < len(order):
             next_block = order[self.current_step + 1]
-            self.highlighted_lines = simulate.highlight_next_lines(
-                self.ax, next_block, simulate.line_next, simulate.lines
-            )
         else:
             next_block = order[0]
-            self.highlighted_lines = simulate.highlight_next_lines(
-                self.ax, next_block, simulate.line_next, simulate.lines
-            )
-                
-        # Animate block/line hiện tại
-        if self.ani:
-            self.ani.event_source.stop()
-        self.ani = simulate.run_by_step_with_animate(
-            self.ax, block, simulate.lines, simulate.line_next, self.ui, interval=0.1, speed=15
+        self.highlighted_lines = simulate.highlight_next_lines(
+            self.ax, next_block, simulate.line_next, simulate.lines
         )
 
-        if order[self.current_step] == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
-            rd= bits.data['Reg']['WriteRegister']
+        # Lấy tốc độ từ slider giao diện
+        speed = self.ui.speed_slider.value()  # speed là int từ 1 đến 10
+
+        # Nếu đang có animation cũ thì dừng lại
+        if self.ani:
+            self.ani.event_source.stop()
+
+        # Animate block/line hiện tại
+        self.ani = simulate.run_by_step_with_animate(
+            self.ax, block, simulate.lines, simulate.line_next, self.ui,
+            interval=0.1, speed=speed, on_finished=on_finished
+        )
+
+        # Nếu là bước ghi thanh ghi (M3) và RegWrite bật, cập nhật giá trị thanh ghi trên giao diện
+        if block == 'M3' and int(bits.data['Reg']['RegWrite'], 2) == 1:
+            rd = bits.data['Reg']['WriteRegister']
             rd_value = bits.data['Reg']['WriteData']
             if int(rd, 2) != 31:  # XZR (X31) luôn bằng 0, không cần cập nhật
-                self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+                self.ui.registerShow.setItem(int(rd, 2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
 
+        # Vẽ lại canvas
         self.canvas.draw_idle()
+
+        # Tăng bước cho lần chạy tiếp theo
         self.current_step += 1
 
     def handle_clean(self):
