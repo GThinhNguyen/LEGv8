@@ -448,7 +448,10 @@ class Ui_MainWindow(object):
             else:
                 item = QtWidgets.QTableWidgetItem("")
             self.registerShow.setItem(i, 0, item)
+
         # Bảng hiển thị RAM
+        # ...existing code...
+
         self.ramTable = QTableWidget(self.reg_frame)
         self.ramTable.setObjectName("ramTable")
         self.ramTable.setColumnCount(4)
@@ -461,17 +464,17 @@ class Ui_MainWindow(object):
             self.ramTable.setItem(i, 0, item_addr)
             # ByteValue (editable)
             self.ramTable.setItem(i, 1, QTableWidgetItem(""))
-            # WordAddress every 4 bytes
-            if i % 4 == 0:
-                w_item = QTableWidgetItem(str(i // 4))
+            # WordAddress every 8 bytes
+            if i % 8 == 0:
+                w_item = QTableWidgetItem(str(i // 8))
                 w_item.setFlags(w_item.flags() & ~Qt.ItemIsEditable)
                 self.ramTable.setItem(i, 2, w_item)
             else:
                 blank = QTableWidgetItem("")
                 blank.setFlags(blank.flags() & ~Qt.ItemIsEditable)
                 self.ramTable.setItem(i, 2, blank)
-            # WordValue editable for each word row (only first of each 4)
-            if i % 4 == 0:
+            # WordValue editable for each word row (only first of each 8)
+            if i % 8 == 0:
                 self.ramTable.setItem(i, 3, QTableWidgetItem(""))
             else:
                 # merge cells visually unused
@@ -488,6 +491,7 @@ class Ui_MainWindow(object):
                     else:
                         # Ô không nhập liệu: màu xám nhạt
                         item.setBackground(QColor(240, 240, 240))
+# ...existing code...
 
         # Đặt kích thước cột hợp lý
         self.ramTable.resizeColumnsToContents()

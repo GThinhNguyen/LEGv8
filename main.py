@@ -78,10 +78,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if col == 0 and row != 31:
             try:
                 val = int(item.text())
-                if not (-9223372036854775808 <= val <= 9223372036854775807):
+                if not (-2147483648 <= val <= 2147483647):
                     raise ValueError
             except Exception:
-                QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ cho phép nhập số nguyên có dấu 64 bit (-9223372036854775808 đến 9223372036854775807).")
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Chỉ cho phép nhập số nguyên có dấu 32 bit (-2147483648 đến 2147483647).")
                 # Quay lại giá trị trước đó
                 item.setText(getattr(self, "_old_register_value", "0"))
                 return
@@ -125,39 +125,39 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Lỗi", "ByteValue chỉ cho phép nhập 8 ký tự 0 hoặc 1.")
                 item.setText(self._old_ram_value)
                 return
-            # Cập nhật WordValue (cột 3) nếu là dòng đầu của word
-            word_row = row - (row % 4)
+            # Cập nhật WordValue (cột 3) nếu là dòng đầu của word (8 byte)
+            word_row = row - (row % 8)
             word = 0
-            for i in range(4):
+            for i in range(8):
                 byte_item = self.ui.ramTable.item(word_row + i, 1)
                 byte_str = byte_item.text() if byte_item else "00000000"
                 if len(byte_str) == 8 and all(c in '01' for c in byte_str):
                     byte_val = int(byte_str, 2)
                 else:
                     byte_val = 0
-                word |= (byte_val << (8 * (3 - i)))
-            # Xử lý số âm (signed 32-bit)
-            if word & 0x80000000:
-                word = word - 0x100000000
+                word |= (byte_val << (8 * (7 - i)))
+            # Xử lý số âm (signed 64-bit)
+            if word & 0x8000000000000000:
+                word = word - 0x10000000000000000
             word_item = self.ui.ramTable.item(word_row, 3)
             if word_item:
                 word_item.setText(str(word))
-        # WordValue (cột 3): chỉ cho phép nhập số nguyên có dấu 32 bit
+        # WordValue (cột 3): chỉ cho phép nhập số nguyên có dấu 64 bit
         elif col == 3:
             val = item.text()
             try:
                 num = int(val)
-                if not (-2147483648 <= num <= 2147483647):
+                if not (-9223372036854775808 <= num <= 9223372036854775807):
                     raise ValueError
             except Exception:
-                QtWidgets.QMessageBox.warning(self, "Lỗi", "WordValue chỉ cho phép nhập số nguyên có dấu từ -2147483648 đến 2147483647.")
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "WordValue chỉ cho phép nhập số nguyên có dấu từ -9223372036854775808 đến 9223372036854775807.")
                 item.setText(self._old_ram_value)
                 return
-            # Cập nhật 4 ByteValue (cột 1) tương ứng
-            # Nếu là số âm, chuyển về unsigned 32-bit để tách byte
-            num_unsigned = num & 0xFFFFFFFF
-            for i in range(4):
-                byte_val = (num_unsigned >> (8 * (3 - i))) & 0xFF
+            # Cập nhật 8 ByteValue (cột 1) tương ứng
+            # Nếu là số âm, chuyển về unsigned 64-bit để tách byte
+            num_unsigned = num & 0xFFFFFFFFFFFFFFFF
+            for i in range(8):
+                byte_val = (num_unsigned >> (8 * (7 - i))) & 0xFF
                 byte_str = format(byte_val, '08b')
                 byte_item = self.ui.ramTable.item(row + i, 1)
                 if byte_item:
@@ -335,18 +335,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ax, next_block, simulate.line_next, simulate.lines
         )
 
-        # Lấy tốc độ từ slider giao diện
-        speed = self.ui.speed_slider.value()  # speed là int từ 1 đến 10
-
         # Nếu đang có animation cũ thì dừng lại
         if self.ani:
             self.ani.event_source.stop()
-
-        # Animate block/line hiện tại
-        self.ani = simulate.run_by_step_with_animate(
-            self.ax, block, simulate.lines, simulate.line_next, self.ui,
-            interval=0.1, speed=speed, on_finished=on_finished
-        )
 
         # Nếu là bước ghi thanh ghi (M3) và RegWrite bật, cập nhật giá trị thanh ghi trên giao diện
         if block == 'M3' and int(bits.data['Reg']['RegWrite'], 2) == 1:
@@ -355,11 +346,18 @@ class MainWindow(QtWidgets.QMainWindow):
             if int(rd, 2) != 31:  # XZR (X31) luôn bằng 0, không cần cập nhật
                 self.ui.registerShow.setItem(int(rd, 2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
 
+        # Tăng bước cho lần chạy tiếp theo
+        self.current_step += 1
+
+        # Animate block/line hiện tại
+        self.ani = simulate.run_by_step_with_animate(
+            self.ax, block, simulate.lines, simulate.line_next, self.ui,
+            interval=0.1, on_finished=on_finished
+        )
+
         # Vẽ lại canvas
         self.canvas.draw_idle()
 
-        # Tăng bước cho lần chạy tiếp theo
-        self.current_step += 1
     def handle_run_by_step_click(self):
         """Xử lý khi người dùng nhấn nút Run by Step"""
         if hasattr(self, 'animation_running') and self.animation_running:
@@ -368,6 +366,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # Chạy một bước bình thường
             self.run_by_step_with_simulate()
+
 
     def run_by_line(self):
         order = [
@@ -509,8 +508,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "<hr>"
             "<span class='note'><b>Lưu ý:</b><br>"
             "- <b>XZR (X31)</b> luôn bằng 0, không thể thay đổi.<br>"
-            "- RAM 32 bit có dấu, nhập ByteValue là 8 ký tự 0/1.<br>"
-            "- Thanh ghi 64 bit có dấu, nhập giá trị từ -9223372036854775808 đến 9223372036854775807. Kết quả phép tính cho phép bị tràn số.<br>"
+            "- RAM 32 bit, nhập ByteValue là 8 ký tự 0/1.<br>"
+            "- Thanh ghi 32 bit, nhập giá trị từ -2147483648 đến 2147483647. Kết quả phép tính cho phép bị tràn số.<br>"
             "- Chỉ WordValue dòng đầu mỗi word mới cho phép chỉnh sửa.<br>"
             "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 4 từ 0 đến 508 (tương ứng với 128 dòng RAM).<br>"
             "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và cách nhau 4 byte.<br>"
