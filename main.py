@@ -7,24 +7,165 @@ from mainwindow_ui import Ui_MainWindow  # file pyuic5 sinh ra
 from matplotlib.animation import FuncAnimation
 import bits  # module của bạn chứa dữ liệu bits
 from process import handle_open_file, handle_close_file, handle_save_file
+import copy
+
+class StateManager:
+    """Quản lý trạng thái UI (registers, RAM, flags)"""
+    
+    def __init__(self, ui):
+        self.ui = ui
+        self.register_backup = []
+        self.ram_backup = []
+        self.flags_backup = []
+        self.line_backup = []
+        self.step_backup = []
+        self.MAX_BACKUP = 20
+    
+    def backup_ui_state_for_step(self, current_line_idx, current_step):
+        """Backup trạng thái UI cho step"""
+        state = {
+            'registers': self._get_register_state(),
+            'ram': self._get_ram_state(),
+            'line_idx': current_line_idx,
+            'step': current_step
+        }
+        self.step_backup.append(state)
+        if len(self.step_backup) > self.MAX_BACKUP:
+            self.step_backup.pop(0)
+    
+    def backup_ui_state_for_line(self, current_line_idx, current_step):
+        """Backup trạng thái UI cho line"""
+        state = {
+            'registers': self._get_register_state(),
+            'ram': self._get_ram_state(),
+            'line_idx': current_line_idx,
+            'step': current_step
+        }
+        self.line_backup.append(state)
+        if len(self.line_backup) > self.MAX_BACKUP:
+            self.line_backup.pop(0)
+    
+    def restore_ui_state_from_step(self):
+        """Khôi phục trạng thái UI từ step backup"""
+        if not self.step_backup:
+            return None
+        
+        state = self.step_backup.pop()
+        self._restore_register_state(state['registers'])
+        self._restore_ram_state(state['ram'])
+        return state['line_idx'], state['step']
+    
+    def restore_ui_state_from_line(self):
+        """Khôi phục trạng thái UI từ line backup"""
+        if not self.line_backup:
+            return None
+        
+        state = self.line_backup.pop()
+        self._restore_register_state(state['registers'])
+        self._restore_ram_state(state['ram'])
+        self._restore_flag_state(state['flags'])
+        return state['line_idx'], state['step']
+
+    def _get_ram_state(self):
+        """Lấy trạng thái hiện tại của RAM"""
+        ram = {}
+        
+        # Kiểm tra UI objects có tồn tại không
+        if not hasattr(self, 'ui') or not hasattr(self.ui, 'ramTable'):
+            return ram
+        
+        for i in range(512):
+            # ByteValue
+            byte_item = self.ui.ramTable.item(i, 1)
+            if byte_item and byte_item.text() != "":
+                ram[f"byte_{i}"] = byte_item.text()
+            else:
+                ram[f"byte_{i}"] = "00000000"
+            # WordValue (chỉ lưu cho dòng đầu mỗi word)
+            if i % 8 == 0:
+                word_item = self.ui.ramTable.item(i, 3)
+            if word_item and word_item.text() != "":
+                ram[f"word_{i}"] = word_item.text()
+            else:
+                ram[f"word_{i}"] = "0"
+
+        return ram
+    
+    def _get_register_state(self):
+        """Lấy trạng thái hiện tại của registers"""
+        registers = {}
+
+        # Kiểm tra UI objects có tồn tại không
+        if not hasattr(self, 'ui') or not hasattr(self.ui, 'registerShow'):
+            return registers
+
+        try:
+            for i in range(32):
+                item = self.ui.registerShow.item(i, 0)
+                # Nếu chưa có giá trị hoặc giá trị rỗng, mặc định là "0"
+                if item is None or item.text() is None or item.text().strip() == "":
+                    registers[i] = "0"
+                else:
+                    registers[i] = item.text()
+        except (RuntimeError, AttributeError):
+            # UI object đã bị xóa hoặc không tồn tại
+            pass
+
+        return registers
+
+
+    def _restore_register_state(self, registers):
+        """Khôi phục trạng thái registers"""
+        for i, value in registers.items():
+            if i != 31:  # Không restore XZR
+                self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(value))
+    
+    def _restore_ram_state(self, ram):
+        """Khôi phục trạng thái RAM"""
+        for key, value in ram.items():
+            if key.startswith("byte_"):
+                row = int(key.split("_")[1])
+                self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(value))
+            elif key.startswith("word_"):
+                row = int(key.split("_")[1])
+                self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
+    
+
+    def can_undo_step(self):
+        """Kiểm tra có thể undo step không"""
+        return len(self.step_backup) > 0
+    
+    def can_undo_line(self):
+        """Kiểm tra có thể undo line không"""
+        return len(self.line_backup) > 0
+    
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.ani = None  # Thêm dòng này để giữ animation
-
-        # Thiết lập UI
+        self.ani = None
+        
+        # Khởi tạo UI (chỉ một lần)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        
+        # Khởi tạo các biến trạng thái
         self.current_line_idx = 0
         self.current_step = 0
-        self.check_in_checkpoint = 0  
+        self.check_in_checkpoint = 0
+
+        # Khởi tạo StateManager SAU khi UI đã sẵn sàng
+        self.state_manager = StateManager(self.ui)
+
+        # Thiết lập kết nối signals
         self.ui.registerShow.itemChanged.connect(self.handle_register_item_changed)
         self.ui.registerShow.cellClicked.connect(self.save_old_register_value)
         self.ui.ramTable.itemChanged.connect(self.handle_ram_item_changed)
         self.ui.ramTable.cellClicked.connect(self.save_old_value)
         self._old_ram_value = ""
+
         # Tạo figure và canvas
         self.fig, self.ax = simulate.setup_simulation_plot(figsize=(30, 18))
         self.canvas = FigureCanvas(self.fig)
@@ -45,6 +186,8 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         self.ui.sim_frame.setLayout(layout)
         layout.addWidget(self.canvas)
+
+        # Kết nối các nút
         self.ui.open_button.clicked.connect(lambda: handle_open_file(self.ui))
         self.ui.close_button.clicked.connect(lambda: handle_close_file(self.ui))
         self.ui.save_button.clicked.connect(lambda: handle_save_file(self.ui))
@@ -56,6 +199,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.speed_slider.valueChanged.connect(self.update_animation_speed)
         self.ui.run_by_line_button.clicked.connect(self.run_by_line)
         self.ui.run_to_checkpoint_button.clicked.connect(self.run_to_checkpoint)
+        # Kết nối các nút undo
+        self.ui.last_step_button.clicked.connect(self.handle_last_step)
+        self.ui.last_line_button.clicked.connect(self.handle_last_line)
         
        # --- Thêm code mặc định ---
         default_code = (
@@ -63,10 +209,40 @@ class MainWindow(QtWidgets.QMainWindow):
             "SUB X4,X1,X3"
         )
         self.ui.codeEditor.setPlainText(default_code)
+        # Đặt giá trị mặc định cho các thanh ghi: X0-X9 = 1..10, X10-X30 = 0, X31 (XZR) = 0
+        for i in range(self.ui.registerShow.rowCount()):
+            if i < 10:
+                value = str(i + 1)
+            else:
+                value = "0"
+            self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(value))
+        # Đảm bảo XZR (X31) luôn là 0
+        self.ui.registerShow.setItem(31, 0, QtWidgets.QTableWidgetItem("0"))
 
-        # --- Thêm dữ liệu mặc định cho thanh ghi ---
-        for i in range(10):  # Chỉ gán giá trị cho 10 thanh ghi đầu
-            self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(str(i + 1)))  # Giá trị từ 1 đến 10
+        # Đặt giá trị mặc định cho RAM: tất cả byte = "00000000", word đầu mỗi 8 dòng = "0"
+        for i in range(self.ui.ramTable.rowCount()):
+            self.ui.ramTable.setItem(i, 1, QtWidgets.QTableWidgetItem("00000000"))
+            if i % 8 == 0:
+                self.ui.ramTable.setItem(i, 3, QtWidgets.QTableWidgetItem("0"))
+
+        # Khôi phục trạng thái UI về mặc định
+        self.state_manager._restore_register_state(self.state_manager._get_register_state())
+        self.state_manager._restore_ram_state(self.state_manager._get_ram_state())
+
+    def closeEvent(self, event):
+        """Override closeEvent để dọn dẹp properly"""
+        # Dọn dẹp state manager backups để tránh truy cập vào deleted objects
+        if hasattr(self, 'state_manager'):
+            self.state_manager.step_backup.clear()
+            self.state_manager.line_backup.clear()
+        
+        # Dừng animations nếu có
+        if hasattr(self, 'ani') and self.ani:
+            self.ani.event_source.stop()
+        
+        # Chấp nhận close event
+        event.accept()
+
 
     def save_old_register_value(self, row, col):
         item = self.ui.registerShow.item(row, col)
@@ -271,12 +447,66 @@ class MainWindow(QtWidgets.QMainWindow):
             self.run_by_step_with_simulate(on_finished=step_and_continue)
 
         step_and_continue()
+
+
+    def handle_last_step(self):
+        """Xử lý nút Last Step - quay lại bước trước đó"""
+        if not self.state_manager.can_undo_step() or not bits.can_undo_step():
+            QtWidgets.QMessageBox.information(self, "Thông báo", "Không có bước nào để quay lại!")
+            return
         
+        # Khôi phục trạng thái bits
+        if bits.restore_last_step():
+            # Khôi phục trạng thái UI
+            result = self.state_manager.restore_ui_state_from_step()
+            if result:
+                self.current_line_idx, self.current_step = result
+                self.highlight_line(self.current_line_idx)
+                
+                # Xóa animation hiện tại
+                simulate.clear_animated_squares(self.ax)
+                
+                # Xóa highlight đường xanh nếu có
+                if hasattr(self, 'highlighted_lines'):
+                    simulate.clear_highlighted_lines(self.highlighted_lines)
+                
+                self.canvas.draw_idle()
+                QtWidgets.QMessageBox.information(self, "Thông báo", "Đã quay lại bước trước đó!")
+
+    def handle_last_line(self):
+        """Xử lý nút Last Line - quay lại dòng lệnh trước đó"""
+        if not self.state_manager.can_undo_line() or not bits.can_undo_line():
+            QtWidgets.QMessageBox.information(self, "Thông báo", "Không có dòng nào để quay lại!")
+            return
+        
+        # Khôi phục trạng thái bits
+        if bits.restore_last_line():
+            # Khôi phục trạng thái UI
+            result = self.state_manager.restore_ui_state_from_line()
+            if result:
+                self.current_line_idx, self.current_step = result
+                self.highlight_line(self.current_line_idx)
+                
+                # Xóa animation hiện tại
+                simulate.clear_animated_squares(self.ax)
+                
+                # Xóa highlight đường xanh nếu có
+                if hasattr(self, 'highlighted_lines'):
+                    simulate.clear_highlighted_lines(self.highlighted_lines)
+                
+                self.canvas.draw_idle()
+                QtWidgets.QMessageBox.information(self, "Thông báo", "Đã quay lại dòng lệnh trước đó!")
+
         
     def run_by_step_with_simulate(self, on_finished=None):
         """
         Chạy từng bước mô phỏng với hiệu ứng animate, cập nhật giao diện và trạng thái.
         """
+
+        # Backup trạng thái trước khi thực hiện bước
+        bits.backup_step_state()
+        self.state_manager.backup_ui_state_for_step(self.current_line_idx, self.current_step)
+        
         # Danh sách các block theo thứ tự animation
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
@@ -320,6 +550,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Highlight dòng code hiện tại
         self.highlight_line(self.current_line_idx)
+
         block = order[self.current_step]
 
         # Xóa highlight cũ trên sơ đồ
@@ -335,9 +566,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ax, next_block, simulate.line_next, simulate.lines
         )
 
-        # Lấy tốc độ từ slider giao diện
-        speed = self.ui.speed_slider.value()  # speed là int từ 1 đến 10
-
         # Nếu đang có animation cũ thì dừng lại
         if self.ani:
             self.ani.event_source.stop()
@@ -345,7 +573,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Animate block/line hiện tại
         self.ani = simulate.run_by_step_with_animate(
             self.ax, block, simulate.lines, simulate.line_next, self.ui,
-            interval=0.1, speed=speed, on_finished=on_finished
+            interval=0.1, on_finished=on_finished
         )
 
         # Nếu là bước ghi thanh ghi (M3) và RegWrite bật, cập nhật giá trị thanh ghi trên giao diện
@@ -378,6 +606,13 @@ class MainWindow(QtWidgets.QMainWindow):
             'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
         ]
         total_lines = self.ui.codeEditor.document().blockCount()
+
+        bits.backup_line_state()
+        self.state_manager.backup_ui_state_for_line(
+            self.current_line_idx, self.current_step
+        )
+
+
         if self.current_line_idx >= total_lines:
             simulate.clear_animated_squares(self.ax)
             QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
@@ -385,8 +620,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.highlight_line(self.current_line_idx)
             bits.reset_data()
             return
+        
         simulate.clear_animated_squares(self.ax)
         self.canvas.draw_idle()
+
         while self.current_step < len(order):
             block = order[self.current_step]
             simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
@@ -450,6 +687,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.run_all_with_simulate()
 
     def handle_clean(self):
+
+        
+        # Xóa backup history
+        self.state_manager.step_backup.clear()
+        self.state_manager.line_backup.clear()
+
         # Đưa giá trị thanh ghi về mặc định (0)
         for i in range(self.ui.registerShow.rowCount() - 1):
             self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem("0"))

@@ -450,7 +450,6 @@ class Ui_MainWindow(object):
             self.registerShow.setItem(i, 0, item)
 
         # Bảng hiển thị RAM
-        # ...existing code...
 
         self.ramTable = QTableWidget(self.reg_frame)
         self.ramTable.setObjectName("ramTable")
@@ -491,7 +490,6 @@ class Ui_MainWindow(object):
                     else:
                         # Ô không nhập liệu: màu xám nhạt
                         item.setBackground(QColor(240, 240, 240))
-# ...existing code...
 
         # Đặt kích thước cột hợp lý
         self.ramTable.resizeColumnsToContents()

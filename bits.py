@@ -1,6 +1,7 @@
 import mainwindow_ui
+import copy
 
-data = {
+data_default = {
     'PC': {'Inp0': '0'},
     'IM': {'ReadAddress': '0'},
     'Reg': {'RegWrite': '0', 'ReadRegister1': '0', 'ReadRegister2': '0', 'WriteRegister': '0', 'WriteData': '0'},
@@ -29,6 +30,65 @@ data = {
     'P7': {'Inp0': '0'},
     'P8': {'Inp0': '0'}
 }
+
+data = copy.deepcopy(data_default)
+
+# Hệ thống backup cho step và line
+step_history = []  # Lịch sử từng bước
+line_history = []  # Lịch sử từng dòng lệnh
+MAX_HISTORY_SIZE = 100  # Giới hạn số lượng backup
+
+def reset_data():
+    """Reset data về trạng thái ban đầu"""
+    global data, step_history, line_history
+    data = copy.deepcopy(data_default)
+    step_history.clear()
+    line_history.clear()
+
+def backup_step_state():
+    """Lưu trạng thái hiện tại cho step history"""
+    global step_history
+    current_state = copy.deepcopy(data)
+    step_history.append(current_state)
+    
+    # Giới hạn kích thước lịch sử
+    if len(step_history) > MAX_HISTORY_SIZE:
+        step_history.pop(0)
+
+def backup_line_state():
+    """Lưu trạng thái hiện tại cho line history"""
+    global line_history
+    current_state = copy.deepcopy(data)
+    line_history.append(current_state)
+    
+    # Giới hạn kích thước lịch sử
+    if len(line_history) > MAX_HISTORY_SIZE:
+        line_history.pop(0)
+
+def restore_last_step():
+    """Khôi phục trạng thái bước trước đó"""
+    global data, step_history
+    if step_history:
+        data = step_history.pop()
+        return True
+    return False
+
+def restore_last_line():
+    """Khôi phục trạng thái dòng lệnh trước đó"""
+    global data, line_history
+    if line_history:
+        data = line_history.pop()
+        return True
+    return False
+
+def can_undo_step():
+    """Kiểm tra có thể undo step không"""
+    return len(step_history) > 0
+
+def can_undo_line():
+    """Kiểm tra có thể undo line không"""
+    return len(line_history) > 0
+
 def signed_to_bin(value: int, n: int) -> str:
     min_val = - (1 << (n-1))
     max_val =   (1 << (n-1)) - 1
@@ -40,6 +100,7 @@ def signed_to_bin(value: int, n: int) -> str:
     # Chuyển sang nhị phân, điền 0 đầu cho đủ n bit
     s = format(value, 'b').zfill(n)
     return s
+
 def bin_to_signed(s):
     value = int(s, 2)
     bits = len(s)
@@ -494,35 +555,3 @@ def get_bits_for_path(block, ui = None):
         
     print(f"get_bits_for_path(): không hỗ trợ block {block}")
     return (None,)
-
-def reset_data():
-    global data
-    data = {
-        'PC': {'Inp0': '0'},
-        'IM': {'ReadAddress': '0'},
-        'Reg': {'RegWrite': '0', 'ReadRegister1': '0', 'ReadRegister2': '0', 'WriteRegister': '0', 'WriteData': '0'},
-        'Mem': {'Address': '0', 'WriteData': '0', 'MemWrite': '0', 'MemRead': '0'},
-        'ALU': {'ALUControl': '0', 'ReadData1': '0', 'ReadData2': '0'},
-        'ADD2': {'Inp0': '0', 'Inp1': '0'},
-        'ADD1': {'Inp0': '0', 'Inp1': '4'},
-        'M1': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
-        'M2': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
-        'M3': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
-        'M4': {'Control': '0', 'Inp0': '0', 'Inp1': '0'},
-        'Flags': {'Control': '0', 'NZCVtmp': '0000', 'NZCV': '0000', 'Condition': '00000'},
-        'SE': {'Inp': '0'},
-        'ALUControl': {'ALUop': '0', 'Ins': '0'},
-        'Control': {'Inp0': '0'},
-        'OR': {'Inp0': '0', 'Inp1': '0', 'Inp2': '0'},
-        'AND1': {'Inp0': '0', 'Inp1': '0'},
-        'AND2': {'Inp0': '0', 'Inp1': '0'},
-        'SL2': {'Inp0': '0'},
-        'P1': {'Inp0': '0'},
-        'P2': {'Inp0': '0'},
-        'P3': {'Inp0': '0'},
-        'P4': {'Inp0': '0'},
-        'P5': {'Inp0': '0'},
-        'P6': {'Inp0': '0'},
-        'P7': {'Inp0': '0'},
-        'P8': {'Inp0': '0'}
-    }
