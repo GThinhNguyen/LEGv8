@@ -414,6 +414,8 @@ def get_bits_for_path(block, ui = None):
     
     if block == 'Mem':
         addr = int(data['Mem']['Address'], 10)
+        if addr < 0 or addr >= ui.ramTable.rowCount() or addr % 8 != 0:
+            return ('0',)
         if data['Mem']['MemRead'] == '1':
             item = ui.ramTable.item(addr, 3)
             try:

@@ -127,7 +127,8 @@ class StateManager:
                 self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(value))
             elif key.startswith("word_"):
                 row = int(key.split("_")[1])
-                self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
+                if row % 8 == 0:
+                    self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
     
     def can_undo_step(self):
         """Kiểm tra có thể undo step không"""
@@ -208,14 +209,12 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.ui.codeEditor.setPlainText(default_code)
         # Đặt giá trị mặc định cho các thanh ghi: X0-X9 = 1..10, X10-X30 = 0, X31 (XZR) = 0
-        for i in range(self.ui.registerShow.rowCount()):
+        for i in range(self.ui.registerShow.rowCount()-1):
             if i < 10:
                 value = str(i + 1)
             else:
                 value = "0"
             self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(value))
-        # Đảm bảo XZR (X31) luôn là 0
-        self.ui.registerShow.setItem(31, 0, QtWidgets.QTableWidgetItem("0"))
 
         # Đặt giá trị mặc định cho RAM: tất cả byte = "00000000", word đầu mỗi 8 dòng = "0"
         for i in range(self.ui.ramTable.rowCount()):
