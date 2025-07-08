@@ -19,7 +19,7 @@ class StateManager:
         self.flags_backup = []
         self.line_backup = []
         self.step_backup = []
-        self.MAX_BACKUP = 20
+        self.MAX_BACKUP = 30
     
     def backup_ui_state_for_step(self, current_line_idx, current_step):
         """Backup trạng thái UI cho step"""
@@ -63,7 +63,6 @@ class StateManager:
         state = self.line_backup.pop()
         self._restore_register_state(state['registers'])
         self._restore_ram_state(state['ram'])
-        self._restore_flag_state(state['flags'])
         return state['line_idx'], state['step']
 
     def _get_ram_state(self):
@@ -239,7 +238,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Chấp nhận close event
         event.accept()
-
 
     def save_old_register_value(self, row, col):
         item = self.ui.registerShow.item(row, col)
@@ -441,6 +439,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
         step_and_continue()
 
+    def update_flags(self):
+        """Cập nhật cờ NZCV trên giao diện dựa vào trạng thái hiện tại"""
+        nzcv = bits.data['Flags']['NZCV']  # Lấy giá trị cờ từ bits.data
+        n, z, c, v = int(nzcv[0]), int(nzcv[1]), int(nzcv[2]), int(nzcv[3])
+
+        def highlight_flag(label, bit):
+            """Cập nhật màu sắc cho cờ"""
+            if bit == 1:
+                label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
+            else:
+                label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
+
+        # Cập nhật màu sắc cho từng cờ
+        highlight_flag(self.ui.n_flag, n)
+        highlight_flag(self.ui.z_flag, z)
+        highlight_flag(self.ui.c_flag, c)
+        highlight_flag(self.ui.v_flag, v)
+
     def handle_last_step(self):
         """Xử lý nút Last Step - quay lại bước trước đó"""
         # Kiểm tra có thể undo step không
@@ -465,14 +481,14 @@ class MainWindow(QtWidgets.QMainWindow):
                     'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
                 ]
 
+                prev_block = 'PC'
                 if self.current_step > 0:
                     prev_block = order[self.current_step]
-                else:
-                    prev_block = order[-1]
 
                 paths_to_remove = simulate.line_next[prev_block]
-                print(paths_to_remove)
                 simulate.clear_animated_squares_from(self.ax, paths_to_remove)
+
+                self.update_flags()
 
                 # Xóa highlight đường xanh nếu có
                 if hasattr(self, 'highlighted_lines'):
@@ -501,6 +517,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.current_line_idx, self.current_step = result
                 self.highlight_line(self.current_line_idx)
                 
+                # Xóa backup của run_by_step trước đó
+                self.state_manager.step_backup.clear()
+
                 # Xóa animation hiện tại
                 simulate.clear_animated_squares(self.ax)
                 
@@ -508,22 +527,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 if hasattr(self, 'highlighted_lines'):
                     simulate.clear_highlighted_lines(self.highlighted_lines)
                 
-                # Cập nhật highlight của các đường tiếp theo
-                order = [
-                    'PC', 'P1', 'IM', 'P2', 'Control',
-                    'P3', 'M1', 'Reg', 'P5',  
-                    'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
-                    'M3', 'Flags', 'AND1', 'AND2', 'OR',
-                    'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
-                ]
-                if self.current_step < len(order):
-                    next_block = order[self.current_step]
-                else:
-                    next_block = order[0]
-
+                # Highlight các line tiếp theo từ PC
                 self.highlighted_lines = simulate.highlight_next_lines(
-                    self.ax, next_block, simulate.line_next, simulate.lines
+                    self.ax, 'PC', simulate.line_next, simulate.lines
                 )
+
+                self.update_flags()
+
                 
                 self.canvas.draw_idle()
 
@@ -617,7 +627,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Tăng bước cho lần chạy tiếp theo
         self.current_step += 1
 
-
     def handle_run_by_step_click(self):
         """Xử lý khi người dùng nhấn nút Run by Step"""
         if hasattr(self, 'animation_running') and self.animation_running:
@@ -665,10 +674,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_step = 0
         self.current_line_idx = int(bits.data['PC']['Inp0'])//4
         self.highlight_line(self.current_line_idx)
+
         # Xóa highlight đường xanh nếu có
         if hasattr(self, 'highlighted_lines'):
             simulate.clear_highlighted_lines(self.highlighted_lines)
             del self.highlighted_lines
+            # Highlight các line tiếp theo từ PC
+            self.highlighted_lines = simulate.highlight_next_lines(
+                self.ax, 'PC', simulate.line_next, simulate.lines
+            )
+        
+        self.state_manager.step_backup.clear()
+
+
         if self.ui.animate_button.isChecked():
             self.run_all_with_simulate()
 
@@ -714,6 +732,9 @@ class MainWindow(QtWidgets.QMainWindow):
             del self.highlighted_lines
         if self.ui.animate_button.isChecked():
             self.run_all_with_simulate()
+
+        self.state_manager.step_backup.clear()
+
 
     def handle_clean(self):
         

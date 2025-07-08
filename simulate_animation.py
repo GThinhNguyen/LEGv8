@@ -8,6 +8,7 @@ from matplotlib.patches import FancyBboxPatch
 from simulate_core import logic_step_from_block, add2
 from simulate_data import points, connection_map, lines
 import bits
+import time
 
 class AnimationManager:
     """Class quản lý animation squares"""
@@ -30,9 +31,9 @@ class AnimationManager:
 
     def clear_all_squares_from(self, paths):
         """Xóa tất cả animated squares có path nằm trong danh sách paths"""
+
         if hasattr(self.ax, 'existing_squares'):
             # Python
-            print(paths)
             remove_keys = []
             for k, sq in self.ax.existing_squares.items():
                 found = False
@@ -50,7 +51,6 @@ class AnimationManager:
                     sq['text'].remove()
                 except Exception:
                     pass
-
 
     def move_squares_to_end(self):
         """Đưa tất cả squares về cuối đường"""
@@ -239,7 +239,6 @@ def run_by_step_with_animate(
         # CÁCH SỬA: Gọi callback trực tiếp và dừng animation khi xong
         if all_done and on_finished and not getattr(update, "_called", False):
             update._called = True
-            print("Calling on_finished callback")
             # Dừng animation trước khi gọi callback
             ani.event_source.stop()
             # Gọi callback trực tiếp

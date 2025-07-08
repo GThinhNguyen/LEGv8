@@ -110,7 +110,7 @@ class CodeEditor(QPlainTextEdit):
 
     def lineNumberAreaWidth(self):
         digits = len(str(self.blockCount()))
-        space = 3 + self.fontMetrics().width('9') * digits + 20  # +20 cho breakpoint area
+        space = 3 + self.fontMetrics().width('9') * digits + 20  # +10 cho breakpoint area
         return space
 
     def toggle_breakpoint(self, line_number):
@@ -193,7 +193,7 @@ class CodeEditor(QPlainTextEdit):
         bottom = top + self.blockBoundingRect(block).height()
 
         # Tính toán vị trí cho breakpoint
-        breakpoint_radius = 6
+        breakpoint_radius = 8
         breakpoint_x = 8
         line_number_start_x = 20
 
@@ -569,18 +569,18 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "LEGv8 Simulator"))
-        self.open_button.setText(_translate("MainWindow", "Open file"))
-        self.close_button.setText(_translate("MainWindow", "Close file"))
-        self.save_button.setText(_translate("MainWindow", "Save"))
+        self.open_button.setText(_translate("MainWindow", "Open File"))
+        self.close_button.setText(_translate("MainWindow", "Close File"))
+        self.save_button.setText(_translate("MainWindow", "Save File"))
         self.animate_button.setText(_translate("MainWindow", "Animate"))
-        self.run_by_step_button.setText(_translate("MainWindow", "Run by step"))
-        self.run_by_line_button.setText(_translate("MainWindow", "Run by line"))
-        self.run_to_checkpoint_button.setText(_translate("MainWindow", "Run to checkpoint"))
+        self.run_by_step_button.setText(_translate("MainWindow", "Skip Step"))
+        self.run_by_line_button.setText(_translate("MainWindow", "Skip Line"))
+        self.run_to_checkpoint_button.setText(_translate("MainWindow", "Skip Breakpoint"))
         self.run_all_button.setText(_translate("MainWindow", "Run all"))
-        self.last_step_button.setText(_translate("MainWindow", "Last step"))
-        self.last_line_button.setText(_translate("MainWindow", "Last line"))
-        self.clean_button.setText(_translate("MainWindow", "Clean"))
-        self.instruction_button.setText(_translate("MainWindow", "Instructions"))
+        self.last_step_button.setText(_translate("MainWindow", "Undo Step"))
+        self.last_line_button.setText(_translate("MainWindow", "Undo Line"))
+        self.clean_button.setText(_translate("MainWindow", "Reset"))
+        self.instruction_button.setText(_translate("MainWindow", "Help"))
 
 
 
