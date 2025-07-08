@@ -36,7 +36,7 @@ data = copy.deepcopy(data_default)
 # Hệ thống backup cho step và line
 step_history = []  # Lịch sử từng bước
 line_history = []  # Lịch sử từng dòng lệnh
-MAX_HISTORY_SIZE = 100  # Giới hạn số lượng backup
+MAX_HISTORY_SIZE = 30  # Giới hạn số lượng backup
 
 def reset_data():
     """Reset data về trạng thái ban đầu"""

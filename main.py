@@ -113,7 +113,6 @@ class StateManager:
 
         return registers
 
-
     def _restore_register_state(self, registers):
         """Khôi phục trạng thái registers"""
         for i, value in registers.items():
@@ -130,7 +129,6 @@ class StateManager:
                 row = int(key.split("_")[1])
                 self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
     
-
     def can_undo_step(self):
         """Kiểm tra có thể undo step không"""
         return len(self.step_backup) > 0
@@ -412,7 +410,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.animate_button.setStyleSheet("background-color: #f44336")
             self.run_all_with_simulate()
 
-
     def update_animation_speed(self, value):
         """Cập nhật tốc độ animation khi thanh trượt thay đổi"""
         import simulate_animation  # Import ở đây để tránh import vòng
@@ -448,13 +445,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         step_and_continue()
 
-
     def handle_last_step(self):
         """Xử lý nút Last Step - quay lại bước trước đó"""
+        # Kiểm tra có thể undo step không
         if not self.state_manager.can_undo_step() or not bits.can_undo_step():
             QtWidgets.QMessageBox.information(self, "Thông báo", "Không có bước nào để quay lại!")
             return
-        
+
         # Khôi phục trạng thái bits
         if bits.restore_last_step():
             # Khôi phục trạng thái UI
@@ -462,16 +459,37 @@ class MainWindow(QtWidgets.QMainWindow):
             if result:
                 self.current_line_idx, self.current_step = result
                 self.highlight_line(self.current_line_idx)
-                
-                # Xóa animation hiện tại
-                simulate.clear_animated_squares(self.ax)
-                
+
+                # Xóa các hình vuông liên quan đến block trước đó
+                order = [
+                    'PC', 'P1', 'IM', 'P2', 'Control',
+                    'P3', 'M1', 'Reg', 'P5',  
+                    'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
+                    'M3', 'Flags', 'AND1', 'AND2', 'OR',
+                    'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
+                ]
+
+                if self.current_step > 0:
+                    prev_block = order[self.current_step]
+                else:
+                    prev_block = order[-1]
+
+                paths_to_remove = simulate.line_next[prev_block]
+                print(paths_to_remove)
+                simulate.clear_animated_squares_from(self.ax, paths_to_remove)
+
                 # Xóa highlight đường xanh nếu có
                 if hasattr(self, 'highlighted_lines'):
                     simulate.clear_highlighted_lines(self.highlighted_lines)
-                
+                if self.current_step < len(order):
+                    next_block = order[self.current_step]
+                else:
+                    next_block = order[0]
+
+                self.highlighted_lines = simulate.highlight_next_lines(
+                    self.ax, next_block, simulate.line_next, simulate.lines
+                )
                 self.canvas.draw_idle()
-                QtWidgets.QMessageBox.information(self, "Thông báo", "Đã quay lại bước trước đó!")
 
     def handle_last_line(self):
         """Xử lý nút Last Line - quay lại dòng lệnh trước đó"""
@@ -494,19 +512,33 @@ class MainWindow(QtWidgets.QMainWindow):
                 if hasattr(self, 'highlighted_lines'):
                     simulate.clear_highlighted_lines(self.highlighted_lines)
                 
-                self.canvas.draw_idle()
-                QtWidgets.QMessageBox.information(self, "Thông báo", "Đã quay lại dòng lệnh trước đó!")
+                # Cập nhật highlight của các đường tiếp theo
+                order = [
+                    'PC', 'P1', 'IM', 'P2', 'Control',
+                    'P3', 'M1', 'Reg', 'P5',  
+                    'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
+                    'M3', 'Flags', 'AND1', 'AND2', 'OR',
+                    'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
+                ]
+                if self.current_step < len(order):
+                    next_block = order[self.current_step]
+                else:
+                    next_block = order[0]
 
-        
+                self.highlighted_lines = simulate.highlight_next_lines(
+                    self.ax, next_block, simulate.line_next, simulate.lines
+                )
+                
+                self.canvas.draw_idle()
+
     def run_by_step_with_simulate(self, on_finished=None):
         """
         Chạy từng bước mô phỏng với hiệu ứng animate, cập nhật giao diện và trạng thái.
         """
-
         # Backup trạng thái trước khi thực hiện bước
         bits.backup_step_state()
         self.state_manager.backup_ui_state_for_step(self.current_line_idx, self.current_step)
-        
+
         # Danh sách các block theo thứ tự animation
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
@@ -588,6 +620,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Tăng bước cho lần chạy tiếp theo
         self.current_step += 1
+
+
     def handle_run_by_step_click(self):
         """Xử lý khi người dùng nhấn nút Run by Step"""
         if hasattr(self, 'animation_running') and self.animation_running:

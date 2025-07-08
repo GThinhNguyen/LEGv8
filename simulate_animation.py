@@ -6,7 +6,7 @@ import matplotlib.patches as patches
 import matplotlib.animation as animation
 from matplotlib.patches import FancyBboxPatch
 from simulate_core import logic_step_from_block, add2
-from simulate_data import points, connection_map
+from simulate_data import points, connection_map, lines
 import bits
 
 class AnimationManager:
@@ -16,87 +16,6 @@ class AnimationManager:
         self.ax = ax
         if not hasattr(ax, 'existing_squares'):
             ax.existing_squares = {}
-
-
-    def backup_animation_state(self):
-        """Backup trạng thái hiện tại của animation"""
-        if hasattr(self.ax, 'existing_squares'):
-            # Deep copy animation state
-            current_state = {}
-            for key, sq in self.ax.existing_squares.items():
-                current_state[key] = {
-                    'distance_travelled': sq['distance_travelled'],
-                    'to': sq['to'],
-                    'path': sq['path'].copy(),
-                    'seg_lens': sq['seg_lens'].copy() if hasattr(sq['seg_lens'], 'copy') else sq['seg_lens'],
-                    'total_len': sq['total_len'],
-                    'text_content': sq['text'].get_text(),
-                    'patch_pos': (sq['patch'].get_x(), sq['patch'].get_y()),
-                    'patch_size': (sq['patch'].get_width(), sq['patch'].get_height()),
-                    'text_pos': sq['text'].get_position()
-                }
-            
-            self.animation_backup.append(current_state)
-            if len(self.animation_backup) > self.MAX_BACKUP:
-                self.animation_backup.pop(0)
-    
-    def restore_animation_state(self):
-        """Khôi phục trạng thái animation trước đó"""
-        if not self.animation_backup:
-            return False
-        
-        # Xóa animation hiện tại
-        self.clear_all_squares()
-        
-        # Khôi phục trạng thái
-        state = self.animation_backup.pop()
-        
-        for key, sq_data in state.items():
-            # Tái tạo animation square từ backup data
-            self._recreate_square_from_backup(key, sq_data)
-        
-        return True
-    
-    def _recreate_square_from_backup(self, key, sq_data):
-        """Tái tạo square từ backup data"""
-        # Tạo patch mới
-        rect = patches.FancyBboxPatch(
-            sq_data['patch_pos'], 
-            sq_data['patch_size'][0], 
-            sq_data['patch_size'][1],
-            boxstyle="round4,pad=0.02",
-            edgecolor='black',
-            linewidth=1,
-            zorder=10
-        )
-        self.ax.add_patch(rect)
-        
-        # Tạo text mới
-        text = self.ax.text(
-            sq_data['text_pos'][0], 
-            sq_data['text_pos'][1], 
-            sq_data['text_content'],
-            color='white', 
-            ha='center', 
-            va='center', 
-            fontsize=10, 
-            zorder=11,
-            weight='bold'
-        )
-        
-        # Tạo lại square object
-        sq = {
-            'patch': rect,
-            'text': text,
-            'path': sq_data['path'],
-            'distance_travelled': sq_data['distance_travelled'],
-            'to': sq_data['to'],
-            'seg_lens': sq_data['seg_lens'],
-            'total_len': sq_data['total_len']
-        }
-        
-        self.ax.existing_squares[key] = sq
-    
     
     def clear_all_squares(self):
         """Xóa tất cả animation squares"""
@@ -108,7 +27,31 @@ class AnimationManager:
                 except Exception:
                     pass
             self.ax.existing_squares.clear()
-    
+
+    def clear_all_squares_from(self, paths):
+        """Xóa tất cả animated squares có path nằm trong danh sách paths"""
+        if hasattr(self.ax, 'existing_squares'):
+            # Python
+            print(paths)
+            remove_keys = []
+            for k, sq in self.ax.existing_squares.items():
+                found = False
+                for p in paths:
+                    if np.array_equal(sq['path'], lines[p]):
+                        found = True
+                        break
+                if found:
+                    remove_keys.append(k)
+
+            for k in remove_keys:
+                try:
+                    sq = self.ax.existing_squares.pop(k)
+                    sq['patch'].remove()
+                    sq['text'].remove()
+                except Exception:
+                    pass
+
+
     def move_squares_to_end(self):
         """Đưa tất cả squares về cuối đường"""
         for sq in self.ax.existing_squares.values():
@@ -124,17 +67,7 @@ class AnimationManager:
             patch_center_y = path[-1][1]
             sq['patch'].set_x(patch_center_x - width)
             sq['patch'].set_y(patch_center_y)            
-            sq['text'].set_position((patch_center_x - width/2, patch_center_y + height/2))  # ← SỬA ĐÂY
-
-def backup_animation_state(ax):
-    """Backup trạng thái animation để có thể undo"""
-    animation_manager = AnimationManager(ax)
-    animation_manager.backup_animation_state()
-
-def restore_animation_state(ax):
-    """Khôi phục trạng thái animation trước đó"""
-    animation_manager = AnimationManager(ax)
-    return animation_manager.restore_animation_state()
+            sq['text'].set_position((patch_center_x - width/2, patch_center_y + height/2))
 
 
 def create_animated_square(ax, path, start_block, to_key, bit_str, zorder=10):
@@ -153,38 +86,8 @@ def create_animated_square(ax, path, start_block, to_key, bit_str, zorder=10):
             sq_rm['patch'].remove()
             sq_rm['text'].remove()
 
-    if key in ax.existing_squares:
-        return _update_existing_square(ax, key, path, display_bit_str, bit_str)
-    else:
-        return _create_new_square(ax, key, path, display_bit_str, bit_str, to_key, zorder)
+    return _create_new_square(ax, key, path, display_bit_str, bit_str, to_key, zorder)
 
-def _update_existing_square(ax, key, path, display_bit_str, bit_str):
-    """Cập nhật square đã tồn tại"""
-    sq = ax.existing_squares[key]
-    sq['distance_travelled'] = 0.0
-    sq['text'].set_text(display_bit_str)
-    sq['text'].set_weight('bold')
-
-    # Cập nhật kích thước
-    renderer = ax.figure.canvas.get_renderer()
-    sq['text'].set_text(bit_str)
-    bbox = sq['text'].get_window_extent(renderer=renderer)
-    inv = ax.transData.inverted()
-    bbox_data = bbox.transformed(inv)
-    width = bbox_data.width
-    height = bbox_data.height
-    
-    # Cập nhật patch size
-    if hasattr(sq['patch'], 'set_width'):
-        sq['patch'].set_width(width)
-        sq['patch'].set_height(height)
-
-    # Điều chỉnh vị trí spawn
-    patch_center_x = path[0][0]
-    patch_center_y = path[0][1]
-    sq['patch'].set_xy((patch_center_x - width/2, patch_center_y - height/2))
-    sq['text'].set_position((patch_center_x - width/2, patch_center_y + height/2))  # ← SỬA ĐÂY
-    return sq
 
 def _create_new_square(ax, key, path, display_bit_str, bit_str, to_key, zorder):
     """Tạo square mới"""
@@ -242,7 +145,6 @@ def set_animation_speed(speed):
     global CURRENT_ANIMATION_SPEED
     CURRENT_ANIMATION_SPEED = (speed - 1) ** 1.7
 
-# Sửa hàm update_square_position
 def update_square_position(sq, speed=None):
     """Cập nhật vị trí của một square"""
     global CURRENT_ANIMATION_SPEED
@@ -334,8 +236,6 @@ def run_by_step_with_animate(
             else:
                 finished_flags[i] = True
                 
-
-            
         # CÁCH SỬA: Gọi callback trực tiếp và dừng animation khi xong
         if all_done and on_finished and not getattr(update, "_called", False):
             update._called = True
@@ -347,7 +247,6 @@ def run_by_step_with_animate(
             
         # Trả về các artist để vẽ lại
         return [sq['patch'] for sq in move_squares] + [sq['text'] for sq in move_squares]
-    
 
     # Tạo animation FuncAnimation
     ani = animation.FuncAnimation(
@@ -362,3 +261,8 @@ def clear_animated_squares(ax):
     """Xóa tất cả animated squares"""
     animation_manager = AnimationManager(ax)
     animation_manager.clear_all_squares()
+
+def clear_animated_squares_from(ax, paths):
+    """Xóa tất cả animated squares bắt đầu trên paths"""
+    animation_manager = AnimationManager(ax)
+    animation_manager.clear_all_squares_from(paths)

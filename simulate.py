@@ -31,6 +31,20 @@ __all__ = [
     'plt'
 ]
 
+def get_previous_block(current_step):
+    """Trả về block trước đó dựa trên current_step"""
+    order = [
+        'PC', 'P1', 'IM', 'P2', 'Control',
+        'P3', 'M1', 'Reg', 'P5',  
+        'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
+        'M3', 'Flags', 'AND1', 'AND2', 'OR',
+        'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
+    ]
+    if current_step > 0:
+        return order[current_step - 1]
+    return None
+
+
 # Convenience function for quick setup
 def setup_simulation_plot(figsize=(25, 12)):
     """Thiết lập plot cơ bản cho simulation"""
