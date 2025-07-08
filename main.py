@@ -298,7 +298,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Lỗi", "ByteValue chỉ cho phép nhập 8 ký tự 0 hoặc 1.")
                 item.setText(self._old_ram_value)
                 return
-            # Cập nhật WordValue (cột 3) nếu là dòng đầu của word
             word_row = row - (row % 8)
             word = 0
             for i in range(8):
@@ -323,11 +322,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 if not (-9223372036854775808 <= num <= 9223372036854775807):
                     raise ValueError
             except Exception:
-                QtWidgets.QMessageBox.warning(self, "Lỗi", "WordValue chỉ cho phép nhập số nguyên có dấu từ -9223372036854775808 đến 9223372036854775807.")
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "DoubleWordValue chỉ cho phép nhập số nguyên có dấu từ -9223372036854775808 đến 9223372036854775807.")
                 item.setText(self._old_ram_value)
                 return
-            # Cập nhật 8 ByteValue (cột 1) tương ứng
-            # Nếu là số âm, chuyển về unsigned 64-bit để tách byte
             num_unsigned = num & 0xFFFFFFFFFFFFFFFF
             for i in range(8):
                 byte_val = (num_unsigned >> (8 * (7 - i))) & 0xFF
@@ -645,7 +642,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_line_idx, self.current_step
         )
 
-
         if self.current_line_idx >= total_lines:
             simulate.clear_animated_squares(self.ax)
             QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
@@ -720,7 +716,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.run_all_with_simulate()
 
     def handle_clean(self):
-
         
         # Xóa backup history
         self.state_manager.step_backup.clear()
@@ -733,8 +728,6 @@ class MainWindow(QtWidgets.QMainWindow):
             item.setBackground(QColor(255, 255, 200))
 
         for row in range(self.ui.ramTable.rowCount()):
-            # ByteValue
-            # WordValue
             word_item = QtWidgets.QTableWidgetItem("0")
             if row % 4 == 0:
                 word_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
@@ -789,8 +782,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "- <b>XZR (X31)</b> luôn bằng 0, không thể thay đổi.<br>"
             "- RAM 64 bit có dấu, nhập ByteValue là 8 ký tự 0/1.<br>"
             "- Thanh ghi 64 bit có dấu, nhập giá trị từ -9223372036854775808 đến 9223372036854775807. Kết quả phép tính cho phép bị tràn số.<br>"
-            "- Chỉ WordValue dòng đầu mỗi word mới cho phép chỉnh sửa.<br>"
-            "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 8 từ 0 đến 508 (tương ứng với 63 dòng RAM).<br>"
+            "- Chỉ DoubleWordValue dòng đầu mới cho phép chỉnh sửa.<br>"
+            "- LDUR và STUR chỉ hỗ trợ địa chỉ chia hết cho 8 từ 0 đến 504 (tương ứng với 64 dòng RAM).<br>"
             "- Mỗi dòng code phải viết liền nhau, không được có dòng trống. Địa chỉ các dòng code bắt đầu từ 0 và cách nhau 4 byte.<br>"
             "- Các lệnh nhánh (B, CBZ, B.cond) trường #imm là số dòng nhảy, chiều dương hướng xuống.<br>"
             "- Có thể dùng dấu <code>//</code> để chú thích trong code, nhưng phải đảm bảo dòng nào cũng có code.</span>"
