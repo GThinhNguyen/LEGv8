@@ -281,7 +281,8 @@ def get_bits_for_path(block, ui = None):
         opcode = instr_binary[0][0:11]
         return (instr, opcode)
     if block == 'P2':
-        #  Trả về tuple các trường opcode, Rn, Rm, Rd, full instruction từ chuỗi nhị phân 32 bit
+        #  Trả về tuple các trường opcode, Rn, Rm, Rd, full instruction 
+        # từ chuỗi nhị phân 32 bit
         instr = data['P2']['Inp0']
         instr_binary = assemble_instruction(instr)
         opcode = instr_binary[0][0:11]
@@ -400,11 +401,14 @@ def get_bits_for_path(block, ui = None):
     if block == 'IM':
         addr = int(data['IM']['ReadAddress'])
         idx = addr // 4
-        lines = ui.codeEditor.toPlainText().splitlines() 
+        lines = ui.codeEditor.toPlainText().splitlines()
+
+
 
         if 0 <= idx < len(lines):
             return (remove_double_slash_comment(lines[idx].strip()),)
         return ("Khong co lenh",)
+    
     if block == 'Reg':
         def reg_out():
             r1 = int(data['Reg']['ReadRegister1'], 2)

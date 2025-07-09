@@ -658,6 +658,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_step = 0
             self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
             self.state_manager.step_backup.clear()
+            # Backup trạng thái cho undo_line khi kết thúc một dòng lệnh
+            self.state_manager.backup_ui_state_for_line(self.current_line_idx, self.current_step)
+            if hasattr(bits, "backup_line_state"):
+                bits.backup_line_state()
 
 
         # Kiểm tra nếu không còn lệnh để thực thi
@@ -853,7 +857,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for row in range(self.ui.ramTable.rowCount()):
             word_item = QtWidgets.QTableWidgetItem("0")
-            if row % 4 == 0:
+            if row % 8 == 0:
                 word_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
                 self.ui.ramTable.setItem(row, 3, word_item)
                 word_item.setBackground(QColor(255, 255, 200))  # Nền trắng cho ô chỉnh sửa
