@@ -167,7 +167,6 @@ imports:
  &#8226;   <a href="#operator">operator</a>
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#posixpath">posixpath</a>
- &#8226;   <a href="#process">process</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
  &#8226;   <a href="#pyi_rth_mplconfig.py">pyi_rth_mplconfig.py</a>
  &#8226;   <a href="#pyi_rth_multiprocessing.py">pyi_rth_multiprocessing.py</a>
@@ -184,6 +183,7 @@ imports:
  &#8226;   <a href="#re._parser">re._parser</a>
  &#8226;   <a href="#reprlib">reprlib</a>
  &#8226;   <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
  &#8226;   <a href="#sre_compile">sre_compile</a>
  &#8226;   <a href="#sre_constants">sre_constants</a>
  &#8226;   <a href="#sre_parse">sre_parse</a>
@@ -2881,7 +2881,6 @@ imported by:
  &#8226;   <a href="#main.py">main.py</a>
  &#8226;   <a href="#mainwindow_ui">mainwindow_ui</a>
  &#8226;   <a href="#matplotlib.backends.qt_compat">matplotlib.backends.qt_compat</a>
- &#8226;   <a href="#process">process</a>
 
   </div>
 
@@ -5503,13 +5502,15 @@ imported by:
   <a target="code" href="///C:/Users/nguye/Documents/LEGv8/bits.py" type="text/plain"><tt>bits</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
-    <a href="#mainwindow_ui">mainwindow_ui</a>
+    <a href="#copy">copy</a>
+ &#8226;   <a href="#mainwindow_ui">mainwindow_ui</a>
 
   </div>
   <div class="import">
 imported by:
     <a href="#main.py">main.py</a>
- &#8226;   <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
+ &#8226;   <a href="#simulate_core">simulate_core</a>
 
   </div>
 
@@ -7265,6 +7266,7 @@ imported by:
     <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
  &#8226;   <a href="#_sre">_sre</a>
  &#8226;   <a href="#argparse">argparse</a>
+ &#8226;   <a href="#bits">bits</a>
  &#8226;   <a href="#collections">collections</a>
  &#8226;   <a href="#cycler">cycler</a>
  &#8226;   <a href="#dataclasses">dataclasses</a>
@@ -16414,7 +16416,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#main.py">main.py</a>
- &#8226;   <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
 
   </div>
 
@@ -17768,7 +17770,7 @@ imported by:
  &#8226;   <a href="#matplotlib.offsetbox">matplotlib.offsetbox</a>
  &#8226;   <a href="#matplotlib.pyplot">matplotlib.pyplot</a>
  &#8226;   <a href="#mpl_toolkits.mplot3d.axes3d">mpl_toolkits.mplot3d.axes3d</a>
- &#8226;   <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_render">simulate_render</a>
 
   </div>
 
@@ -18063,7 +18065,8 @@ imported by:
  &#8226;   <a href="#mpl_toolkits.mplot3d.art3d">mpl_toolkits.mplot3d.art3d</a>
  &#8226;   <a href="#mpl_toolkits.mplot3d.axes3d">mpl_toolkits.mplot3d.axes3d</a>
  &#8226;   <a href="#mpl_toolkits.mplot3d.axis3d">mpl_toolkits.mplot3d.axis3d</a>
- &#8226;   <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
+ &#8226;   <a href="#simulate_render">simulate_render</a>
 
   </div>
 
@@ -18111,7 +18114,6 @@ imported by:
  &#8226;   <a href="#matplotlib.transforms">matplotlib.transforms</a>
  &#8226;   <a href="#matplotlib.typing">matplotlib.typing</a>
  &#8226;   <a href="#mpl_toolkits.mplot3d.art3d">mpl_toolkits.mplot3d.art3d</a>
- &#8226;   <a href="#simulate">simulate</a>
 
   </div>
 
@@ -18297,6 +18299,7 @@ imported by:
  &#8226;   <a href="#matplotlib.figure">matplotlib.figure</a>
  &#8226;   <a href="#matplotlib.image">matplotlib.image</a>
  &#8226;   <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_render">simulate_render</a>
 
   </div>
 
@@ -20407,7 +20410,10 @@ imported by:
  &#8226;   <a href="#numpy.testing.overrides">numpy.testing.overrides</a>
  &#8226;   <a href="#numpy.typing">numpy.typing</a>
  &#8226;   <a href="#numpy.version">numpy.version</a>
- &#8226;   <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
+ &#8226;   <a href="#simulate_data">simulate_data</a>
+ &#8226;   <a href="#simulate_highlight">simulate_highlight</a>
+ &#8226;   <a href="#simulate_render">simulate_render</a>
 
   </div>
 
@@ -25647,7 +25653,6 @@ imported by:
  &#8226;   <a href="#platform">platform</a>
  &#8226;   <a href="#plistlib">plistlib</a>
  &#8226;   <a href="#posixpath">posixpath</a>
- &#8226;   <a href="#process">process</a>
  &#8226;   <a href="#psutil">psutil</a>
  &#8226;   <a href="#psutil._common">psutil._common</a>
  &#8226;   <a href="#psutil._compat">psutil._compat</a>
@@ -27695,23 +27700,6 @@ imported by:
  &#8226;   <a href="#sysconfig">sysconfig</a>
  &#8226;   <a href="#unittest.case">unittest.case</a>
  &#8226;   <a href="#unittest.mock">unittest.mock</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="process"></a>
-  <a target="code" href="///C:/Users/nguye/Documents/LEGv8/process.py" type="text/plain"><tt>process</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#PyQt5.QtWidgets">PyQt5.QtWidgets</a>
- &#8226;   <a href="#os">os</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#main.py">main.py</a>
 
   </div>
 
@@ -33556,18 +33544,113 @@ imported by:
   <a target="code" href="///C:/Users/nguye/Documents/LEGv8/simulate.py" type="text/plain"><tt>simulate</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
-    <a href="#bits">bits</a>
- &#8226;   <a href="#matplotlib.animation">matplotlib.animation</a>
- &#8226;   <a href="#matplotlib.image">matplotlib.image</a>
- &#8226;   <a href="#matplotlib.patches">matplotlib.patches</a>
- &#8226;   <a href="#matplotlib.path">matplotlib.path</a>
- &#8226;   <a href="#matplotlib.pyplot">matplotlib.pyplot</a>
- &#8226;   <a href="#numpy">numpy</a>
+    <a href="#matplotlib.pyplot">matplotlib.pyplot</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
+ &#8226;   <a href="#simulate_core">simulate_core</a>
+ &#8226;   <a href="#simulate_data">simulate_data</a>
+ &#8226;   <a href="#simulate_highlight">simulate_highlight</a>
+ &#8226;   <a href="#simulate_render">simulate_render</a>
 
   </div>
   <div class="import">
 imported by:
     <a href="#main.py">main.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="simulate_animation"></a>
+  <a target="code" href="///C:/Users/nguye/Documents/LEGv8/simulate_animation.py" type="text/plain"><tt>simulate_animation</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#bits">bits</a>
+ &#8226;   <a href="#matplotlib.animation">matplotlib.animation</a>
+ &#8226;   <a href="#matplotlib.patches">matplotlib.patches</a>
+ &#8226;   <a href="#numpy">numpy</a>
+ &#8226;   <a href="#simulate_core">simulate_core</a>
+ &#8226;   <a href="#simulate_data">simulate_data</a>
+ &#8226;   <a href="#time">time</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#main.py">main.py</a>
+ &#8226;   <a href="#simulate">simulate</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="simulate_core"></a>
+  <a target="code" href="///C:/Users/nguye/Documents/LEGv8/simulate_core.py" type="text/plain"><tt>simulate_core</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#bits">bits</a>
+ &#8226;   <a href="#simulate_data">simulate_data</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="simulate_data"></a>
+  <a target="code" href="///C:/Users/nguye/Documents/LEGv8/simulate_data.py" type="text/plain"><tt>simulate_data</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#numpy">numpy</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#simulate">simulate</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
+ &#8226;   <a href="#simulate_core">simulate_core</a>
+ &#8226;   <a href="#simulate_render">simulate_render</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="simulate_highlight"></a>
+  <a target="code" href="///C:/Users/nguye/Documents/LEGv8/simulate_highlight.py" type="text/plain"><tt>simulate_highlight</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#numpy">numpy</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#simulate">simulate</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="simulate_render"></a>
+  <a target="code" href="///C:/Users/nguye/Documents/LEGv8/simulate_render.py" type="text/plain"><tt>simulate_render</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#matplotlib.image">matplotlib.image</a>
+ &#8226;   <a href="#matplotlib.patches">matplotlib.patches</a>
+ &#8226;   <a href="#matplotlib.pyplot">matplotlib.pyplot</a>
+ &#8226;   <a href="#numpy">numpy</a>
+ &#8226;   <a href="#simulate_data">simulate_data</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#simulate">simulate</a>
 
   </div>
 
@@ -34935,6 +35018,7 @@ imported by:
  &#8226;   <a href="#setuptools._vendor.jaraco.functools">setuptools._vendor.jaraco.functools</a>
  &#8226;   <a href="#setuptools._vendor.more_itertools.more">setuptools._vendor.more_itertools.more</a>
  &#8226;   <a href="#setuptools.command.egg_info">setuptools.command.egg_info</a>
+ &#8226;   <a href="#simulate_animation">simulate_animation</a>
  &#8226;   <a href="#socketserver">socketserver</a>
  &#8226;   <a href="#ssl">ssl</a>
  &#8226;   <a href="#subprocess">subprocess</a>

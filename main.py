@@ -209,8 +209,20 @@ class MainWindow(QtWidgets.QMainWindow):
         
        # --- Thêm code mặc định ---
         default_code = (
-            "ADD X1,X2,X3\n"
-            "SUB X4,X1,X3"
+            "ADDI X0, XZR, #8\t// X0 la dia chi mang\n"
+            "AND X1, XZR, X1\t// X1 luu tong mang\n"
+            "CBZ X3, #2\t// X3 la chi so mang\n"
+            "ORRI X3, XZR, #0\n"
+            "ADDI X4, XZR, #5\t// X4 la so phan tu mang\n"
+            "SUBS XZR, X3, X4\n"
+            "B.GE #6\n"
+            "LDUR X2, [X0, #0]\n"
+            "ADD X1, X1, X2\n"
+            "ADDI X3, X3, #1\n"
+            "ADDI X0, X0, #8\n"
+            "B #-6\n"
+            "STUR X1, [XZR, #0]\n"
+            "ADDI X6, X5, #1"
         )
         self.ui.codeEditor.setPlainText(default_code)
         # Đặt giá trị mặc định cho các thanh ghi: X0-X9 = 1..10, X10-X30 = 0, X31 (XZR) = 0
