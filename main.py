@@ -235,7 +235,154 @@ class MainWindow(QtWidgets.QMainWindow):
         if hasattr(bits, "backup_line_state"):
             bits.backup_line_state()
 
+    def validate_code_lines(self):
+        """
+        Kiểm tra từng dòng code trong codeEditor.
+        Nếu có dòng sai (rỗng, không đúng cú pháp...), báo lỗi và reset chương trình.
+        Trả về True nếu hợp lệ, False nếu có lỗi.
+        """
+        import re
+        code = self.ui.codeEditor.toPlainText()
+        lines = code.splitlines()
 
+        # Định nghĩa opcode và số lượng toán hạng
+        r_type = {"ADD", "SUB", "AND", "ORR", "EOR", "ADDS", "SUBS", "ANDS"}
+        i_type = {"ADDI", "SUBI", "ANDI", "ORRI", "EORI", "ADDIS", "SUBIS", "ANDIS"}
+        mem_type = {"LDUR", "STUR"}
+        cb_type = {"CBZ"}
+        b_type = {"B"}
+        bcond_type = {"B.EQ", "B.NE", "B.MI", "B.PL", "B.VS", "B.VC", "B.GE", "B.LT", "B.GT", "B.LE"}
+
+        # Hỗ trợ X0-X31, SP, FP, LR, XZR
+        reg_pat = r"(X([12]?\d|3[01])|SP|FP|LR|XZR)"
+        imm_pat = r"#-?\d+"
+        mem_pat = r"\[" + reg_pat + r",\s*" + imm_pat + r"\]"
+
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            # Nếu dòng rỗng hoàn toàn thì báo lỗi
+            if not stripped:
+                QtWidgets.QMessageBox.critical(
+                    self, "Lỗi cú pháp",
+                    f"Dòng {idx+1} bị rỗng!\nMỗi dòng phải có lệnh hợp lệ."
+                )
+                self.handle_clean()
+                return False
+
+            # Nếu có comment, chỉ lấy phần trước dấu //
+            code_part = stripped.split("//", 1)[0].strip()
+            if not code_part:
+                QtWidgets.QMessageBox.critical(
+                    self, "Lỗi cú pháp",
+                    f"Dòng {idx+1} chỉ có chú thích, không có lệnh hợp lệ!"
+                )
+                self.handle_clean()
+                return False
+
+            # Tách opcode và toán hạng bằng dấu phẩy
+            parts = code_part.split(None, 1)
+            opcode = parts[0].upper()
+            # Tách operands bởi dấu phẩy ngoài ngoặc vuông
+            def split_operands(s):
+                ops = []
+                buf = ''
+                bracket = 0
+                for c in s:
+                    if c == '[':
+                        bracket += 1
+                        buf += c
+                    elif c == ']':
+                        bracket -= 1
+                        buf += c
+                    elif c == ',' and bracket == 0:
+                        if buf.strip():
+                            ops.append(buf.strip())
+                        buf = ''
+                    else:
+                        buf += c
+                if buf.strip():
+                    ops.append(buf.strip())
+                return ops
+
+            operands = split_operands(parts[1]) if len(parts) > 1 else []
+
+            # R-type: OPCODE Xd, Xn, Xm
+            if opcode in r_type:
+                if len(operands) != 3:
+                    msg = f"Dòng {idx+1}: {opcode} cần 3 toán hạng (Xd, Xn, Xm)."
+                elif not all(re.fullmatch(reg_pat, op) for op in operands):
+                    msg = f"Dòng {idx+1}: {opcode} yêu cầu các toán hạng là thanh ghi X0-X31, SP, FP, LR, XZR."
+                else:
+                    continue
+                QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
+                self.handle_clean()
+                return False
+
+            # I-type: OPCODE Xd, Xn, #imm
+            elif opcode in i_type:
+                if len(operands) != 3:
+                    msg = f"Dòng {idx+1}: {opcode} cần 3 toán hạng (Xd, Xn, #imm)."
+                elif not (re.fullmatch(reg_pat, operands[0]) and re.fullmatch(reg_pat, operands[1]) and re.fullmatch(imm_pat, operands[2])):
+                    msg = f"Dòng {idx+1}: {opcode} yêu cầu Xd, Xn là thanh ghi X0-X31, SP, FP, LR, XZR; #imm là số."
+                else:
+                    continue
+                QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
+                self.handle_clean()
+                return False
+
+            # MEM-type: LDUR Xd, [Xn, #imm]
+            elif opcode in mem_type:
+                if len(operands) != 2:
+                    msg = f"Dòng {idx+1}: {opcode} cần 2 toán hạng (Xd, [Xn, #imm])."
+                elif not (re.fullmatch(reg_pat, operands[0]) and re.fullmatch(mem_pat, operands[1].replace(" ", ""))):
+                    msg = f"Dòng {idx+1}: {opcode} yêu cầu Xd là thanh ghi, toán hạng thứ 2 dạng [Xn,#imm] với Xn là X0-X31, SP, FP, LR, XZR."
+                else:
+                    continue
+                QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
+                self.handle_clean()
+                return False
+
+            # CB-type: CBZ Xn, #imm
+            elif opcode in cb_type:
+                if len(operands) != 2:
+                    msg = f"Dòng {idx+1}: {opcode} cần 2 toán hạng (Xn, #imm)."
+                elif not (re.fullmatch(reg_pat, operands[0]) and re.fullmatch(imm_pat, operands[1])):
+                    msg = f"Dòng {idx+1}: {opcode} yêu cầu Xn là thanh ghi X0-X31, SP, FP, LR, XZR; #imm là số."
+                else:
+                    continue
+                QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
+                self.handle_clean()
+                return False
+
+            # B-type: B #imm
+            elif opcode in b_type:
+                if len(operands) != 1 or not re.fullmatch(imm_pat, operands[0]):
+                    msg = f"Dòng {idx+1}: {opcode} cần 1 toán hạng là số (B #imm)."
+                else:
+                    continue
+                QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
+                self.handle_clean()
+                return False
+
+            # B.cond-type: B.EQ #imm ...
+            elif opcode in bcond_type:
+                if len(operands) != 1 or not re.fullmatch(imm_pat, operands[0]):
+                    msg = f"Dòng {idx+1}: {opcode} cần 1 toán hạng là số (B.cond #imm)."
+                else:
+                    continue
+                QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
+                self.handle_clean()
+                return False
+
+            else:
+                QtWidgets.QMessageBox.critical(
+                    self, "Lỗi cú pháp",
+                    f"Dòng {idx+1}: Opcode '{opcode}' không hợp lệ hoặc chưa hỗ trợ!"
+                )
+                self.handle_clean()
+                return False
+
+        return True
             
     def handle_open_file(self):
         """
@@ -422,6 +569,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     byte_item.setText(byte_str)
 
     def run_all(self):
+        if not self.validate_code_lines():
+            return
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
             'P3', 'M1', 'Reg', 'P5',  
@@ -551,6 +700,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_last_step(self):
         """Xử lý nút Last Step - quay lại bước trước đó"""
         # Kiểm tra có thể undo step không
+        if not self.validate_code_lines():
+            return
         if not self.state_manager.can_undo_step() or not bits.can_undo_step():
             QtWidgets.QMessageBox.information(self, "Thông báo", "Không có bước nào để quay lại!")
             return
@@ -574,7 +725,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 prev_block = 'PC'
                 if self.current_step > 0:
-                    print(self.current_step)
                     prev_block = order[self.current_step]
 
                 paths_to_remove = simulate.line_next[prev_block]
@@ -597,6 +747,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_last_line(self):
         """Xử lý nút Last Line - quay lại dòng lệnh trước đó"""
+        if not self.validate_code_lines():
+            return
         if not self.state_manager.can_undo_line() or not bits.can_undo_line():
             QtWidgets.QMessageBox.information(self, "Thông báo", "Không có dòng nào để quay lại!")
             return
@@ -633,6 +785,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Chạy từng bước mô phỏng với hiệu ứng animate, cập nhật giao diện và trạng thái.
         """
+        if not self.validate_code_lines():
+            return
         # Backup trạng thái trước khi thực hiện bước
         bits.backup_step_state()
         self.state_manager.backup_ui_state_for_step(self.current_line_idx, self.current_step)
@@ -738,6 +892,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def run_by_line(self):
+        if not self.validate_code_lines():
+            return
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
             'P3', 'M1', 'Reg', 'P5',  
@@ -791,6 +947,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.run_all_with_simulate()
 
     def run_to_checkpoint(self):
+        if not self.validate_code_lines():
+            return
         order = [
             'PC', 'P1', 'IM', 'P2', 'Control',
             'P3', 'M1', 'Reg', 'P5',  
