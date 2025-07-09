@@ -6,8 +6,14 @@ import simulate        # module của bạn chứa show_polygons_and_lines, anim
 from mainwindow_ui import Ui_MainWindow  # file pyuic5 sinh ra
 from matplotlib.animation import FuncAnimation
 import bits  # module của bạn chứa dữ liệu bits
-from process import handle_open_file, handle_close_file, handle_save_file
-import copy
+
+
+import os
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
+
+# Biến toàn cục lưu đường dẫn file hiện tại
+current_file_path = None
+
 
 class StateManager:
     """Quản lý trạng thái UI (registers, RAM, flags)"""
@@ -186,9 +192,9 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addWidget(self.canvas)
 
         # Kết nối các nút
-        self.ui.open_button.clicked.connect(lambda: handle_open_file(self.ui))
-        self.ui.close_button.clicked.connect(lambda: handle_close_file(self.ui))
-        self.ui.save_button.clicked.connect(lambda: handle_save_file(self.ui))
+        self.ui.open_button.clicked.connect(self.handle_open_file)
+        self.ui.close_button.clicked.connect(self.handle_close_file)
+        self.ui.save_button.clicked.connect(self.handle_save_file)
         self.ui.run_all_button.clicked.connect(self.run_all)
         self.ui.run_by_step_button.clicked.connect(self.handle_run_by_step_click)
         self.ui.clean_button.clicked.connect(self.handle_clean)
@@ -224,6 +230,90 @@ class MainWindow(QtWidgets.QMainWindow):
         # Khôi phục trạng thái UI về mặc định
         self.state_manager._restore_register_state(self.state_manager._get_register_state())
         self.state_manager._restore_ram_state(self.state_manager._get_ram_state())
+        # Backup trạng thái ban đầu cho undo_line
+        self.state_manager.backup_ui_state_for_line(self.current_line_idx, self.current_step)
+        if hasattr(bits, "backup_line_state"):
+            bits.backup_line_state()
+
+
+            
+    def handle_open_file(self):
+        """
+        Hiển thị hộp thoại mở file, đọc nội dung và hiển thị vào codeEditor.
+        Cập nhật thanh trạng thái với tên file.
+        """
+        global current_file_path
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,  # Sử dụng self làm parent
+            "Chọn file LEGv8 (.txt, .s, .asm)",
+            os.getcwd(),
+            "LEGv8 Files (*.txt *.s *.asm);;All Files (*)",
+            options=options
+        )
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.ui.codeEditor.setPlainText(content)
+                current_file_path = file_path
+                self.setWindowTitle(f"LEGv8 Simulator - {os.path.basename(file_path)}")
+            except Exception as e:
+                QMessageBox.critical(self, "Lỗi mở file", str(e))
+
+            simulate.clear_animated_squares(self.ax)
+            self.handle_clean()
+
+    def handle_close_file(self):
+        """
+        Đóng file hiện tại: xóa nội dung codeEditor và thiết lập lại tiêu đề.
+        """
+        global current_file_path
+        if current_file_path is None:
+            QMessageBox.information(self, "Thông báo", "Chưa có file nào được mở.")
+            return
+        reply = QMessageBox.question(
+            self,
+            "Xác nhận",
+            f"Bạn có muốn đóng file {os.path.basename(current_file_path)} không?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.ui.codeEditor.clear()
+            current_file_path = None
+            self.setWindowTitle("LEGv8 Simulator")
+            self.handle_clean()
+
+    def handle_save_file(self):
+        """
+        Hiển thị hộp thoại lưu file, lưu nội dung codeEditor vào file.
+        Nếu chưa có file nào được mở, sử dụng Save As.
+        """
+        global current_file_path
+        if current_file_path is None:
+            options = QFileDialog.Options()
+            options |= QFileDialog.ShowDirsOnly
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Lưu file LEGv8",
+                os.getcwd(),
+                "LEGv8 Files (*.txt *.s *.asm);;All Files (*)",
+                options=options
+            )
+            if not file_path:
+                return
+            current_file_path = file_path
+
+        try:
+            with open(current_file_path, 'w', encoding='utf-8') as f:
+                f.write(self.ui.codeEditor.toPlainText())
+            QMessageBox.information(self, "Thông báo", "Đã lưu thành công.")
+            self.setWindowTitle(f"LEGv8 Simulator - {os.path.basename(current_file_path)}")
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi lưu file", str(e))
+
 
     def closeEvent(self, event):
         """Override closeEvent để dọn dẹp properly"""
@@ -375,6 +465,7 @@ class MainWindow(QtWidgets.QMainWindow):
             simulate.clear_animated_squares(self.ax)
             self.current_step = 0
             self.current_line_idx = int(bits.data['PC']['Inp0'])//4
+            
             if self.current_line_idx < total_lines:
                 self.highlight_line(self.current_line_idx)
             loop_count += 1
@@ -483,6 +574,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 prev_block = 'PC'
                 if self.current_step > 0:
+                    print(self.current_step)
                     prev_block = order[self.current_step]
 
                 paths_to_remove = simulate.line_next[prev_block]
@@ -565,6 +657,8 @@ class MainWindow(QtWidgets.QMainWindow):
             simulate.clear_animated_squares(self.ax)  # Xóa các khối vuông khi chạy hết 1 vòng
             self.current_step = 0
             self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
+            self.state_manager.step_backup.clear()
+
 
         # Kiểm tra nếu không còn lệnh để thực thi
         if bits.data['P2']['Inp0'] == 'Khong co lenh':
@@ -627,6 +721,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Tăng bước cho lần chạy tiếp theo
         self.current_step += 1
 
+
     def handle_run_by_step_click(self):
         """Xử lý khi người dùng nhấn nút Run by Step"""
         if hasattr(self, 'animation_running') and self.animation_running:
@@ -635,6 +730,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # Chạy một bước bình thường
             self.run_by_step_with_simulate()
+
+
 
     def run_by_line(self):
         order = [
@@ -686,7 +783,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.state_manager.step_backup.clear()
 
-
         if self.ui.animate_button.isChecked():
             self.run_all_with_simulate()
 
@@ -700,7 +796,6 @@ class MainWindow(QtWidgets.QMainWindow):
         ]
         total_lines = self.ui.codeEditor.document().blockCount()
 
-
         if self.current_line_idx >= total_lines:
             simulate.clear_animated_squares(self.ax)
             QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
@@ -712,7 +807,9 @@ class MainWindow(QtWidgets.QMainWindow):
         simulate.clear_animated_squares(self.ax)
         self.canvas.draw_idle()
         while self.current_line_idx < total_lines and ((not self.ui.codeEditor.is_breakpoint(self.current_line_idx)) or self.check_in_checkpoint==0):
+            
             self.check_in_checkpoint += 1
+
             while self.current_step < len(order):
                 block = order[self.current_step]
                 simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
@@ -725,6 +822,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_step = 0
             self.current_line_idx = int(bits.data['PC']['Inp0'])//4
             self.highlight_line(self.current_line_idx)
+
+            bits.backup_line_state()
+            self.state_manager.backup_ui_state_for_line(
+                self.current_line_idx, self.current_step
+            )
+
         # Xóa highlight đường xanh nếu có
         self.check_in_checkpoint = 0
         if hasattr(self, 'highlighted_lines'):
