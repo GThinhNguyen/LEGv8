@@ -749,6 +749,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Xử lý nút Last Line - quay lại dòng lệnh trước đó"""
         if not self.validate_code_lines():
             return
+        
         if not self.state_manager.can_undo_line() or not bits.can_undo_line():
             QtWidgets.QMessageBox.information(self, "Thông báo", "Không có dòng nào để quay lại!")
             return
@@ -766,6 +767,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 # Xóa animation hiện tại
                 simulate.clear_animated_squares(self.ax)
+                bits.restore_last_line()
+                self.current_step = 0
                 
                 # Xóa highlight đường xanh nếu có
                 if hasattr(self, 'highlighted_lines'):
@@ -778,7 +781,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 self.update_flags()
 
-                
                 self.canvas.draw_idle()
 
     def run_by_step_with_simulate(self, on_finished=None):
