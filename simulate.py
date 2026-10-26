@@ -18,11 +18,11 @@ __all__ = [
     'logic_step_from_block', 'add2', 'get_simulation_order',
     
     # Rendering functions
-    'show_polygons', 'show_lines', 'show_points', 'show_name', 'show_background',
+    'show_polygons', 'show_lines', 'show_points', 'show_text', 'show_background',
     
     # Animation functions
-    'run_by_step_with_animate', 'run_all_with_animate', 'clear_animated_squares',
-    'AnimationManager', 'create_animated_square',
+    'run_by_step_with_animate', 'clear_animated_squares', 'clear_animated_squares_from',
+    'AnimationManager', 'create_animated_square', 'set_animation_speed',
     
     # Highlighting functions
     'highlight_next_lines', 'clear_highlighted_lines', 'manage_line_highlights',

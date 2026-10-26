@@ -89,6 +89,14 @@ def can_undo_line():
     """Kiểm tra có thể undo line không"""
     return len(line_history) > 0
 
+def clear_step_history():
+    """Xóa lịch sử step"""
+    step_history.clear()
+
+def clear_line_history():
+    """Xóa lịch sử line"""
+    line_history.clear()
+
 def signed_to_bin(value: int, n: int) -> str:
     min_val = - (1 << (n-1))
     max_val =   (1 << (n-1)) - 1
@@ -117,7 +125,7 @@ def parse_signed(val):
         return 0
 
 def get_register_value(idx, ui):
-    if idx == 31:
+    if idx == 31 or ui is None:
         return 0
     item = ui.registerShow.item(idx, 0)
     try:
@@ -137,7 +145,8 @@ def parse_reg(p: str) -> int:
     p = p.upper()
     # Special aliases
     special = {
-        'XZR': 31, 'SP': 28, 
+        'XZR': 31, 'WZR': 31,
+        'SP': 28,  'WSP': 28,
         'FP': 29,  'LR': 30
     }
     if p in special:
@@ -277,12 +286,16 @@ def get_bits_for_path(block, ui = None):
         return (data[block]['Inp0'], data[block]['Inp0'], data[block]['Inp0'])  
     if block == 'P4':
         instr = data['P4']['Inp0']
+        if instr == 'Khong co lenh':
+            return (instr, '0' * 11)
         instr_binary = assemble_instruction(instr)
         opcode = instr_binary[0][0:11]
         return (instr, opcode)
     if block == 'P2':
         #  Trả về tuple các trường opcode, Rn, Rm, Rd, full instruction từ chuỗi nhị phân 32 bit
         instr = data['P2']['Inp0']
+        if instr == 'Khong co lenh':
+            return ('0' * 11, '0' * 5, '0' * 5, '0' * 5, instr)
         instr_binary = assemble_instruction(instr)
         opcode = instr_binary[0][0:11]
         rm     = instr_binary[0][11:16]
@@ -338,6 +351,8 @@ def get_bits_for_path(block, ui = None):
         raise KeyError(f"Unrecognized opcode: {inp}")
     if block == 'SE':
         instr = data['SE']['Inp']  
+        if instr == 'Khong co lenh':
+            return (0,)
         instr_binary = assemble_instruction(instr)
         opcode1 = instr_binary[0][0:11]     
         opcode2= instr_binary[0][0:8]   
@@ -398,7 +413,12 @@ def get_bits_for_path(block, ui = None):
     if block == 'PC':
         return (data['PC']['Inp0'],)
     if block == 'IM':
-        addr = int(data['IM']['ReadAddress'])
+        if ui is None:
+            return ("Khong co lenh",)
+        try:
+            addr = int(data['IM']['ReadAddress'])
+        except Exception:
+            addr = 0
         idx = addr // 4
         lines = ui.codeEditor.toPlainText().splitlines() 
 
@@ -413,7 +433,12 @@ def get_bits_for_path(block, ui = None):
         return reg_out()
     
     if block == 'Mem':
-        addr = int(data['Mem']['Address'], 10)
+        if ui is None:
+            return ('0',)
+        try:
+            addr = int(data['Mem']['Address'], 10)
+        except Exception:
+            return ('0',)
         if addr < 0 or addr >= ui.ramTable.rowCount() or addr % 8 != 0:
             return ('0',)
         if data['Mem']['MemRead'] == '1':
@@ -425,8 +450,18 @@ def get_bits_for_path(block, ui = None):
             return (val,)
 
         if data['Mem']['MemWrite'] == '1':
-            write_data = int(data['Mem']['WriteData'], 10)
-            ui.ramTable.setItem(addr, 3, mainwindow_ui.QTableWidgetItem(str(write_data)))
+            try:
+                write_data = int(data['Mem']['WriteData'], 10)
+            except Exception:
+                write_data = 0
+            item = ui.ramTable.item(addr, 3)
+            if item is not None:
+                item.setText(str(write_data))
+            else:
+                from PyQt5 import QtWidgets, QtGui
+                new_item = QtWidgets.QTableWidgetItem(str(write_data))
+                new_item.setBackground(QtGui.QColor(255, 255, 200))
+                ui.ramTable.setItem(addr, 3, new_item)
             return ('0',)
         return ('0',)
 
@@ -516,15 +551,14 @@ def get_bits_for_path(block, ui = None):
         n, z, c, v = nzcv[0], nzcv[1], nzcv[2], nzcv[3]
         n, z, c, v = int(n), int(z), int(c), int(v) 
         def highlight_flag(label, bit):
-            if bit == 1:
-                label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
-            else:
-                label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
+            bg = "lightgreen" if bit == 1 else "lightgray"
+            label.setStyleSheet(f"background-color: {bg}; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
 
-        highlight_flag(ui.n_flag, n)
-        highlight_flag(ui.z_flag, z)
-        highlight_flag(ui.c_flag, c)
-        highlight_flag(ui.v_flag, v)
+        if ui is not None:
+            if hasattr(ui, 'n_flag'): highlight_flag(ui.n_flag, n)
+            if hasattr(ui, 'z_flag'): highlight_flag(ui.z_flag, z)
+            if hasattr(ui, 'c_flag'): highlight_flag(ui.c_flag, c)
+            if hasattr(ui, 'v_flag'): highlight_flag(ui.v_flag, v)
         cond_code = data['Flags']['Condition']  # string 5 bit, e.g. "01011"
         # Chúng ta chỉ cần 4 bit thấp:
         cond = int(cond_code[-4:], 2)

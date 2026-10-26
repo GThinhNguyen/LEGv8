@@ -38,7 +38,7 @@ class AnimationManager:
             for k, sq in self.ax.existing_squares.items():
                 found = False
                 for p in paths:
-                    if np.array_equal(sq['path'], lines[p]):
+                    if p in lines and np.array_equal(sq['path'], lines[p]):
                         found = True
                         break
                 if found:
@@ -46,9 +46,10 @@ class AnimationManager:
 
             for k in remove_keys:
                 try:
-                    sq = self.ax.existing_squares.pop(k)
-                    sq['patch'].remove()
-                    sq['text'].remove()
+                    sq = self.ax.existing_squares.pop(k, None)
+                    if sq:
+                        sq['patch'].remove()
+                        sq['text'].remove()
                 except Exception:
                     pass
 
@@ -72,6 +73,8 @@ class AnimationManager:
 
 def create_animated_square(ax, path, start_block, to_key, bit_str, zorder=10):
     """Tạo một animated square mới"""
+    if not hasattr(ax, 'existing_squares'):
+        ax.existing_squares = {}
     key = (start_block, to_key)
     display_bit_str = add2(bit_str, [to_key])
     
@@ -82,9 +85,13 @@ def create_animated_square(ax, path, start_block, to_key, bit_str, zorder=10):
             if any(conn['to'] == start_block for conn in connection_map.get(sq['to'], []))
         ]
         for k in remove_keys:
-            sq_rm = ax.existing_squares.pop(k)
-            sq_rm['patch'].remove()
-            sq_rm['text'].remove()
+            try:
+                sq_rm = ax.existing_squares.pop(k, None)
+                if sq_rm:
+                    sq_rm['patch'].remove()
+                    sq_rm['text'].remove()
+            except Exception:
+                pass
 
     return _create_new_square(ax, key, path, display_bit_str, bit_str, to_key, zorder)
 
@@ -143,7 +150,7 @@ CURRENT_ANIMATION_SPEED = 10  # Giá trị mặc định
 def set_animation_speed(speed):
     """Cập nhật tốc độ animation ngay lập tức"""
     global CURRENT_ANIMATION_SPEED
-    CURRENT_ANIMATION_SPEED = (speed - 1) ** 1.7
+    CURRENT_ANIMATION_SPEED = max(1.0, float((speed - 1) ** 1.7) if speed > 1 else 1.0)
 
 def update_square_position(sq, speed=None):
     """Cập nhật vị trí của một square"""

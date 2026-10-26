@@ -83,12 +83,16 @@ class LineNumberArea(QWidget):
     def mousePressEvent(self, event):
         """Xử lý click vào line number area để toggle breakpoint"""
         if event.button() == QtCore.Qt.LeftButton:
-            # Tính dòng được click
-            line_height = self.codeEditor.fontMetrics().height()
-            line_number = int(event.y() / line_height) + self.codeEditor.firstVisibleBlock().blockNumber()
-            
-            # Toggle breakpoint
-            self.codeEditor.toggle_breakpoint(line_number)
+            block = self.codeEditor.firstVisibleBlock()
+            top = self.codeEditor.blockBoundingGeometry(block).translated(self.codeEditor.contentOffset()).top()
+            bottom = top + self.codeEditor.blockBoundingRect(block).height()
+            while block.isValid():
+                if top <= event.y() <= bottom:
+                    self.codeEditor.toggle_breakpoint(block.blockNumber())
+                    break
+                block = block.next()
+                top = bottom
+                bottom = top + self.codeEditor.blockBoundingRect(block).height()
 
 class CodeEditor(QPlainTextEdit):
     # Signal để thông báo khi breakpoint thay đổi

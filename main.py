@@ -89,10 +89,10 @@ class StateManager:
             # WordValue (chỉ lưu cho dòng đầu mỗi word)
             if i % 8 == 0:
                 word_item = self.ui.ramTable.item(i, 3)
-            if word_item and word_item.text() != "":
-                ram[f"word_{i}"] = word_item.text()
-            else:
-                ram[f"word_{i}"] = "0"
+                if word_item and word_item.text() != "":
+                    ram[f"word_{i}"] = word_item.text()
+                else:
+                    ram[f"word_{i}"] = "0"
 
         return ram
     
@@ -120,20 +120,40 @@ class StateManager:
 
     def _restore_register_state(self, registers):
         """Khôi phục trạng thái registers"""
-        for i, value in registers.items():
-            if i != 31:  # Không restore XZR
-                self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(value))
+        self.ui.registerShow.blockSignals(True)
+        try:
+            for i, value in registers.items():
+                if i != 31:  # Không restore XZR
+                    item = self.ui.registerShow.item(i, 0)
+                    if item:
+                        item.setText(str(value))
+                    else:
+                        self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem(str(value)))
+        finally:
+            self.ui.registerShow.blockSignals(False)
     
     def _restore_ram_state(self, ram):
         """Khôi phục trạng thái RAM"""
-        for key, value in ram.items():
-            if key.startswith("byte_"):
-                row = int(key.split("_")[1])
-                self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(value))
-            elif key.startswith("word_"):
-                row = int(key.split("_")[1])
-                if row % 8 == 0:
-                    self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(value))
+        self.ui.ramTable.blockSignals(True)
+        try:
+            for key, value in ram.items():
+                if key.startswith("byte_"):
+                    row = int(key.split("_")[1])
+                    item = self.ui.ramTable.item(row, 1)
+                    if item:
+                        item.setText(str(value))
+                    else:
+                        self.ui.ramTable.setItem(row, 1, QtWidgets.QTableWidgetItem(str(value)))
+                elif key.startswith("word_"):
+                    row = int(key.split("_")[1])
+                    if row % 8 == 0:
+                        item = self.ui.ramTable.item(row, 3)
+                        if item:
+                            item.setText(str(value))
+                        else:
+                            self.ui.ramTable.setItem(row, 3, QtWidgets.QTableWidgetItem(str(value)))
+        finally:
+            self.ui.ramTable.blockSignals(False)
     
     def can_undo_step(self):
         """Kiểm tra có thể undo step không"""
@@ -142,6 +162,14 @@ class StateManager:
     def can_undo_line(self):
         """Kiểm tra có thể undo line không"""
         return len(self.line_backup) > 0
+
+    def clear_step_backup(self):
+        """Xóa lịch sử step backup"""
+        self.step_backup.clear()
+
+    def clear_line_backup(self):
+        """Xóa lịch sử line backup"""
+        self.line_backup.clear()
     
 
 
@@ -201,6 +229,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.instruction_button.clicked.connect(self.show_instruction)
         self.ui.animate_button.clicked.connect(self.handle_animate_button)
         self.ui.speed_slider.valueChanged.connect(self.update_animation_speed)
+        simulate.set_animation_speed(self.ui.speed_slider.value())
         self.ui.run_by_line_button.clicked.connect(self.run_by_line)
         self.ui.run_to_checkpoint_button.clicked.connect(self.run_to_checkpoint)
         # Kết nối các nút undo
@@ -242,10 +271,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Khôi phục trạng thái UI về mặc định
         self.state_manager._restore_register_state(self.state_manager._get_register_state())
         self.state_manager._restore_ram_state(self.state_manager._get_ram_state())
-        # Backup trạng thái ban đầu cho undo_line
-        self.state_manager.backup_ui_state_for_line(self.current_line_idx, self.current_step)
-        if hasattr(bits, "backup_line_state"):
-            bits.backup_line_state()
 
     def validate_code_lines(self):
         """
@@ -257,6 +282,13 @@ class MainWindow(QtWidgets.QMainWindow):
         code = self.ui.codeEditor.toPlainText()
         lines = code.splitlines()
 
+        if not lines or not any(l.strip() for l in lines):
+            QtWidgets.QMessageBox.critical(
+                self, "Lỗi cú pháp",
+                "Chương trình rỗng!\nVui lòng nhập mã lệnh LEGv8."
+            )
+            return False
+
         # Định nghĩa opcode và số lượng toán hạng
         r_type = {"ADD", "SUB", "AND", "ORR", "EOR", "ADDS", "SUBS", "ANDS"}
         i_type = {"ADDI", "SUBI", "ANDI", "ORRI", "EORI", "ADDIS", "SUBIS", "ANDIS"}
@@ -265,10 +297,10 @@ class MainWindow(QtWidgets.QMainWindow):
         b_type = {"B"}
         bcond_type = {"B.EQ", "B.NE", "B.MI", "B.PL", "B.VS", "B.VC", "B.GE", "B.LT", "B.GT", "B.LE"}
 
-        # Hỗ trợ X0-X31, SP, FP, LR, XZR
-        reg_pat = r"(X([12]?\d|3[01])|SP|FP|LR|XZR)"
+        # Hỗ trợ X0-X31, W0-W31, SP, WSP, FP, LR, XZR, WZR
+        reg_pat = r"([XW]([12]?\d|3[01])|SP|WSP|FP|LR|XZR|WZR)"
         imm_pat = r"#-?\d+"
-        mem_pat = r"\[" + reg_pat + r",\s*" + imm_pat + r"\]"
+        mem_pat = r"\[" + reg_pat + r"," + imm_pat + r"\]"
 
         for idx, line in enumerate(lines):
             stripped = line.strip()
@@ -278,7 +310,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     self, "Lỗi cú pháp",
                     f"Dòng {idx+1} bị rỗng!\nMỗi dòng phải có lệnh hợp lệ."
                 )
-                self.handle_clean()
                 return False
 
             # Nếu có comment, chỉ lấy phần trước dấu //
@@ -288,7 +319,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     self, "Lỗi cú pháp",
                     f"Dòng {idx+1} chỉ có chú thích, không có lệnh hợp lệ!"
                 )
-                self.handle_clean()
                 return False
 
             # Tách opcode và toán hạng bằng dấu phẩy
@@ -322,48 +352,45 @@ class MainWindow(QtWidgets.QMainWindow):
             if opcode in r_type:
                 if len(operands) != 3:
                     msg = f"Dòng {idx+1}: {opcode} cần 3 toán hạng (Xd, Xn, Xm)."
-                elif not all(re.fullmatch(reg_pat, op) for op in operands):
+                elif not all(re.fullmatch(reg_pat, op, re.IGNORECASE) for op in operands):
                     msg = f"Dòng {idx+1}: {opcode} yêu cầu các toán hạng là thanh ghi X0-X31, SP, FP, LR, XZR."
                 else:
                     continue
                 QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
-                self.handle_clean()
                 return False
 
             # I-type: OPCODE Xd, Xn, #imm
             elif opcode in i_type:
                 if len(operands) != 3:
                     msg = f"Dòng {idx+1}: {opcode} cần 3 toán hạng (Xd, Xn, #imm)."
-                elif not (re.fullmatch(reg_pat, operands[0]) and re.fullmatch(reg_pat, operands[1]) and re.fullmatch(imm_pat, operands[2])):
+                elif not (re.fullmatch(reg_pat, operands[0], re.IGNORECASE) and re.fullmatch(reg_pat, operands[1], re.IGNORECASE) and re.fullmatch(imm_pat, operands[2])):
                     msg = f"Dòng {idx+1}: {opcode} yêu cầu Xd, Xn là thanh ghi X0-X31, SP, FP, LR, XZR; #imm là số."
                 else:
                     continue
                 QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
-                self.handle_clean()
                 return False
 
             # MEM-type: LDUR Xd, [Xn, #imm]
             elif opcode in mem_type:
+                clean_mem_op = re.sub(r"\s+", "", operands[1]) if len(operands) > 1 else ""
                 if len(operands) != 2:
                     msg = f"Dòng {idx+1}: {opcode} cần 2 toán hạng (Xd, [Xn, #imm])."
-                elif not (re.fullmatch(reg_pat, operands[0]) and re.fullmatch(mem_pat, operands[1].replace(" ", ""))):
+                elif not (re.fullmatch(reg_pat, operands[0], re.IGNORECASE) and re.fullmatch(mem_pat, clean_mem_op, re.IGNORECASE)):
                     msg = f"Dòng {idx+1}: {opcode} yêu cầu Xd là thanh ghi, toán hạng thứ 2 dạng [Xn,#imm] với Xn là X0-X31, SP, FP, LR, XZR."
                 else:
                     continue
                 QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
-                self.handle_clean()
                 return False
 
             # CB-type: CBZ Xn, #imm
             elif opcode in cb_type:
                 if len(operands) != 2:
                     msg = f"Dòng {idx+1}: {opcode} cần 2 toán hạng (Xn, #imm)."
-                elif not (re.fullmatch(reg_pat, operands[0]) and re.fullmatch(imm_pat, operands[1])):
+                elif not (re.fullmatch(reg_pat, operands[0], re.IGNORECASE) and re.fullmatch(imm_pat, operands[1])):
                     msg = f"Dòng {idx+1}: {opcode} yêu cầu Xn là thanh ghi X0-X31, SP, FP, LR, XZR; #imm là số."
                 else:
                     continue
                 QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
-                self.handle_clean()
                 return False
 
             # B-type: B #imm
@@ -373,7 +400,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 else:
                     continue
                 QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
-                self.handle_clean()
                 return False
 
             # B.cond-type: B.EQ #imm ...
@@ -383,7 +409,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 else:
                     continue
                 QtWidgets.QMessageBox.critical(self, "Lỗi cú pháp", msg)
-                self.handle_clean()
                 return False
 
             else:
@@ -391,7 +416,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     self, "Lỗi cú pháp",
                     f"Dòng {idx+1}: Opcode '{opcode}' không hợp lệ hoặc chưa hỗ trợ!"
                 )
-                self.handle_clean()
                 return False
 
         return True
@@ -453,7 +477,6 @@ class MainWindow(QtWidgets.QMainWindow):
         global current_file_path
         if current_file_path is None:
             options = QFileDialog.Options()
-            options |= QFileDialog.ShowDirsOnly
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Lưu file LEGv8",
@@ -495,6 +518,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_register_item_changed(self, item):
         row = item.row()
         col = item.column()
+        if row == 31:
+            if item.text() != "0":
+                item.setText("0")
+            return
         if col == 0 and row != 31:
             try:
                 val = int(item.text())
@@ -511,6 +538,9 @@ class MainWindow(QtWidgets.QMainWindow):
         editor = self.ui.codeEditor
         # Xóa highlight cũ
         editor.setExtraSelections([])
+
+        if line_number < 0 or line_number >= editor.document().blockCount():
+            return
 
         # Chuẩn bị cursor đến dòng cần highlight
         cursor = editor.textCursor()
@@ -548,19 +578,24 @@ class MainWindow(QtWidgets.QMainWindow):
             word_row = row - (row % 8)
             word = 0
             for i in range(8):
-                byte_item = self.ui.ramTable.item(word_row + i, 1)
-                byte_str = byte_item.text() if byte_item else "00000000"
-                if len(byte_str) == 8 and all(c in '01' for c in byte_str):
-                    byte_val = int(byte_str, 2)
-                else:
-                    byte_val = 0
-                word |= (byte_val << (8 * (7 - i)))
+                if word_row + i < self.ui.ramTable.rowCount():
+                    byte_item = self.ui.ramTable.item(word_row + i, 1)
+                    byte_str = byte_item.text() if byte_item else "00000000"
+                    if len(byte_str) == 8 and all(c in '01' for c in byte_str):
+                        byte_val = int(byte_str, 2)
+                    else:
+                        byte_val = 0
+                    word |= (byte_val << (8 * (7 - i)))
             # Xử lý số âm (signed 64-bit)
             if word & 0x8000000000000000:
                 word = word - 0x10000000000000000
             word_item = self.ui.ramTable.item(word_row, 3)
             if word_item:
-                word_item.setText(str(word))
+                self.ui.ramTable.blockSignals(True)
+                try:
+                    word_item.setText(str(word))
+                finally:
+                    self.ui.ramTable.blockSignals(False)
         # WordValue (cột 3): chỉ cho phép nhập số nguyên có dấu 64 bit
         elif col == 3:
             val = item.text()
@@ -573,23 +608,22 @@ class MainWindow(QtWidgets.QMainWindow):
                 item.setText(self._old_ram_value)
                 return
             num_unsigned = num & 0xFFFFFFFFFFFFFFFF
-            for i in range(8):
-                byte_val = (num_unsigned >> (8 * (7 - i))) & 0xFF
-                byte_str = format(byte_val, '08b')
-                byte_item = self.ui.ramTable.item(row + i, 1)
-                if byte_item:
-                    byte_item.setText(byte_str)
+            self.ui.ramTable.blockSignals(True)
+            try:
+                for i in range(8):
+                    if row + i < self.ui.ramTable.rowCount():
+                        byte_val = (num_unsigned >> (8 * (7 - i))) & 0xFF
+                        byte_str = format(byte_val, '08b')
+                        byte_item = self.ui.ramTable.item(row + i, 1)
+                        if byte_item:
+                            byte_item.setText(byte_str)
+            finally:
+                self.ui.ramTable.blockSignals(False)
 
     def run_all(self):
         if not self.validate_code_lines():
             return
-        order = [
-            'PC', 'P1', 'IM', 'P2', 'Control',
-            'P3', 'M1', 'Reg', 'P5',  
-            'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
-            'M3', 'Flags', 'AND1', 'AND2', 'OR',
-            'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
-        ]
+        order = simulate.get_simulation_order()
 
         total_lines = self.ui.codeEditor.document().blockCount()
         if not hasattr(self, 'current_step'):
@@ -600,9 +634,21 @@ class MainWindow(QtWidgets.QMainWindow):
         loop_count = 0
         max_loops = 1000
         while self.current_line_idx < total_lines:
+            if self.current_line_idx < 0:
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Địa chỉ lệnh không hợp lệ!\nDừng mô phỏng.")
+                self.current_step = 0
+                self.current_line_idx = 0
+                bits.reset_data()
+                self.state_manager.clear_step_backup()
+                self.state_manager.clear_line_backup()
+                self.highlight_line(self.current_line_idx)
+                self.canvas.draw_idle()
+                return
+
             if loop_count >= max_loops:
                 QtWidgets.QMessageBox.critical(self, "Lỗi", "Chương trình vượt quá 1000 vòng lặp! Có thể bị lặp vô hạn.")
-                break
+                return
+
             while self.current_step < len(order):
                 # Kiểm tra lỗi "Khong co lenh" trước khi xử lý từng block
                 if bits.data['P2']['Inp0'] == 'Khong co lenh':
@@ -610,6 +656,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.current_step = 0
                     self.current_line_idx = 0
                     bits.reset_data()
+                    self.state_manager.clear_step_backup()
+                    self.state_manager.clear_line_backup()
                     self.highlight_line(self.current_line_idx)
                     self.canvas.draw_idle()
                     return
@@ -617,24 +665,32 @@ class MainWindow(QtWidgets.QMainWindow):
                 # Gọi hàm chỉ xử lý logic, không tạo animation
                 simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
                 # Nếu có logic cập nhật thanh ghi khi M3
-                if block == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
-                    rd= bits.data['Reg']['WriteRegister']
+                if block == 'M3' and int(bits.data['Reg']['RegWrite'], 2) == 1:
+                    rd = bits.data['Reg']['WriteRegister']
                     rd_value = bits.data['Reg']['WriteData']
-                    if int(rd, 2) != 31:
-                        self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+                    try:
+                        reg_idx = int(rd, 2)
+                        reg_val = int(rd_value)
+                        if reg_idx != 31:
+                            self.ui.registerShow.setItem(reg_idx, 0, QtWidgets.QTableWidgetItem(str(reg_val)))
+                    except Exception:
+                        pass
                 self.current_step += 1
             simulate.clear_animated_squares(self.ax)
             self.current_step = 0
-            self.current_line_idx = int(bits.data['PC']['Inp0'])//4
+            self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
             
-            if self.current_line_idx < total_lines:
+            if 0 <= self.current_line_idx < total_lines:
                 self.highlight_line(self.current_line_idx)
             loop_count += 1
 
         QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
         self.current_line_idx = 0
+        self.current_step = 0
         self.highlight_line(self.current_line_idx)
         bits.reset_data()
+        self.state_manager.clear_step_backup()
+        self.state_manager.clear_line_backup()
         self.canvas.draw_idle()
 
     def handle_animate_button(self):
@@ -645,27 +701,30 @@ class MainWindow(QtWidgets.QMainWindow):
             # Đang chạy animation, dừng lại
             self.animation_running = False
             if self.ani:
-                self.ani.event_source.stop()
+                try:
+                    self.ani.event_source.stop()
+                except Exception:
+                    pass
                 self.ani = None
             self.ui.animate_button.setText("Animate")
-            self.ui.animate_button.setStyleSheet("")  # Reset style nếu muốn
+            self.ui.animate_button.setChecked(False)
+            self.ui.animate_button.setStyleSheet("")
         else:
             # Bắt đầu chạy animation toàn bộ
             self.animation_running = True
             self.ui.animate_button.setText("Pause")
+            self.ui.animate_button.setChecked(True)
             self.ui.animate_button.setStyleSheet("background-color: #f44336")
             self.run_all_with_simulate()
 
     def update_animation_speed(self, value):
         """Cập nhật tốc độ animation khi thanh trượt thay đổi"""
-        import simulate_animation  # Import ở đây để tránh import vòng
-        simulate_animation.set_animation_speed(value)
+        simulate.set_animation_speed(value)
 
     def run_all_with_simulate(self):
         """
         Chạy toàn bộ chương trình từng bước với hiệu ứng animate (dùng run_by_step_with_simulate).
         """
-
         total_lines = self.ui.codeEditor.document().blockCount()
         # Reset về đầu nếu đang ở cuối
         if not hasattr(self, 'current_step'):
@@ -676,13 +735,20 @@ class MainWindow(QtWidgets.QMainWindow):
         def step_and_continue():
             if not getattr(self, 'animation_running', False):
                 return
-            if self.current_line_idx >= total_lines:
-                QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+            if self.current_line_idx >= total_lines or self.current_line_idx < 0:
+                if self.current_line_idx >= total_lines:
+                    QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+                else:
+                    QtWidgets.QMessageBox.warning(self, "Lỗi", "Địa chỉ lệnh không hợp lệ!\nDừng mô phỏng.")
                 self.current_line_idx = 0
+                self.current_step = 0
                 self.highlight_line(self.current_line_idx)
                 bits.reset_data()
+                self.state_manager.clear_step_backup()
+                self.state_manager.clear_line_backup()
                 self.animation_running = False
                 self.ui.animate_button.setText("Animate")
+                self.ui.animate_button.setChecked(False)
                 self.ui.animate_button.setStyleSheet("")
                 return
             step_and_continue.started = True
@@ -698,20 +764,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         def highlight_flag(label, bit):
             """Cập nhật màu sắc cho cờ"""
-            if bit == 1:
-                label.setStyleSheet(label.styleSheet() + "background-color: lightgreen;")
-            else:
-                label.setStyleSheet(label.styleSheet().replace("background-color: lightgreen;", ""))
+            bg = "lightgreen" if bit == 1 else "lightgray"
+            label.setStyleSheet(f"background-color: {bg}; border: 2px solid black; border-radius: 6px; font-weight: bold; font-size: 16px; qproperty-alignment: AlignCenter;")
 
         # Cập nhật màu sắc cho từng cờ
-        highlight_flag(self.ui.n_flag, n)
-        highlight_flag(self.ui.z_flag, z)
-        highlight_flag(self.ui.c_flag, c)
-        highlight_flag(self.ui.v_flag, v)
+        if hasattr(self.ui, 'n_flag'): highlight_flag(self.ui.n_flag, n)
+        if hasattr(self.ui, 'z_flag'): highlight_flag(self.ui.z_flag, z)
+        if hasattr(self.ui, 'c_flag'): highlight_flag(self.ui.c_flag, c)
+        if hasattr(self.ui, 'v_flag'): highlight_flag(self.ui.v_flag, v)
 
     def handle_last_step(self):
         """Xử lý nút Last Step - quay lại bước trước đó"""
-        # Kiểm tra có thể undo step không
         if not self.validate_code_lines():
             return
         if not self.state_manager.can_undo_step() or not bits.can_undo_step():
@@ -726,20 +789,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.current_line_idx, self.current_step = result
                 self.highlight_line(self.current_line_idx)
 
-                # Xóa các hình vuông liên quan đến block trước đó
-                order = [
-                    'PC', 'P1', 'IM', 'P2', 'Control',
-                    'P3', 'M1', 'Reg', 'P5',  
-                    'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
-                    'M3', 'Flags', 'AND1', 'AND2', 'OR',
-                    'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
-                ]
+                order = simulate.get_simulation_order()
 
                 prev_block = 'PC'
                 if self.current_step > 0:
                     prev_block = order[self.current_step]
 
-                paths_to_remove = simulate.line_next[prev_block]
+                paths_to_remove = simulate.line_next.get(prev_block, [])
                 simulate.clear_animated_squares_from(self.ax, paths_to_remove)
 
                 self.update_flags()
@@ -773,8 +829,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.current_line_idx, self.current_step = result
                 self.highlight_line(self.current_line_idx)
                 
-                # Xóa backup của run_by_step trước đó
-                self.state_manager.step_backup.clear()
+                # Xóa backup step của run_by_step trước đó để đồng bộ
+                self.state_manager.clear_step_backup()
+                bits.clear_step_history()
 
                 # Xóa animation hiện tại
                 simulate.clear_animated_squares(self.ax)
@@ -789,8 +846,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 )
 
                 self.update_flags()
-
-                
                 self.canvas.draw_idle()
 
     def run_by_step_with_simulate(self, on_finished=None):
@@ -798,37 +853,71 @@ class MainWindow(QtWidgets.QMainWindow):
         Chạy từng bước mô phỏng với hiệu ứng animate, cập nhật giao diện và trạng thái.
         """
         if not self.validate_code_lines():
+            if hasattr(self, 'animation_running') and self.animation_running:
+                self.animation_running = False
+                self.ui.animate_button.setText("Animate")
+                self.ui.animate_button.setChecked(False)
+                self.ui.animate_button.setStyleSheet("")
             return
-        # Backup trạng thái trước khi thực hiện bước
-        bits.backup_step_state()
-        self.state_manager.backup_ui_state_for_step(self.current_line_idx, self.current_step)
 
-        # Danh sách các block theo thứ tự animation
-        order = [
-            'PC', 'P1', 'IM', 'P2', 'Control',
-            'P3', 'M1', 'Reg', 'P5',  
-            'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
-            'M3', 'Flags', 'AND1', 'AND2', 'OR',
-            'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
-        ]
-
+        order = simulate.get_simulation_order()
         total_lines = self.ui.codeEditor.document().blockCount()
 
         # Khởi tạo biến đếm bước nếu chưa có
         if not hasattr(self, 'current_step'):
             self.current_step = 0
+        if not hasattr(self, 'current_line_idx'):
+            self.current_line_idx = 0
 
         # Nếu đã hết order thì quay lại đầu, cập nhật dòng lệnh tiếp theo
         if self.current_step >= len(order):
             simulate.clear_animated_squares(self.ax)  # Xóa các khối vuông khi chạy hết 1 vòng
             self.current_step = 0
             self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
-            self.state_manager.step_backup.clear()
-            # Backup trạng thái cho undo_line khi kết thúc một dòng lệnh
-            self.state_manager.backup_ui_state_for_line(self.current_line_idx, self.current_step)
-            if hasattr(bits, "backup_line_state"):
-                bits.backup_line_state()
 
+        # Kiểm tra nếu dòng lệnh âm hoặc vượt quá số dòng code
+        if self.current_line_idx < 0:
+            QtWidgets.QMessageBox.warning(self, "Lỗi", "Địa chỉ lệnh không hợp lệ!\nDừng mô phỏng.")
+            self.current_step = 0
+            self.current_line_idx = 0
+            bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
+            self.highlight_line(self.current_line_idx)
+            simulate.clear_animated_squares(self.ax)
+            if hasattr(self, 'animation_running') and self.animation_running:
+                self.animation_running = False
+                self.ui.animate_button.setText("Animate")
+                self.ui.animate_button.setChecked(False)
+                self.ui.animate_button.setStyleSheet("")
+            self.canvas.draw_idle()
+            return
+
+        if self.current_line_idx >= total_lines:
+            QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+            self.current_line_idx = 0
+            self.current_step = 0
+            self.highlight_line(self.current_line_idx)
+            bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
+            simulate.clear_animated_squares(self.ax)
+            if hasattr(self, 'animation_running') and self.animation_running:
+                self.animation_running = False
+                self.ui.animate_button.setText("Animate")
+                self.ui.animate_button.setChecked(False)
+                self.ui.animate_button.setStyleSheet("")
+            self.canvas.draw_idle()
+            return
+
+        # Backup cho line khi bắt đầu một dòng mới (step == 0)
+        if self.current_step == 0:
+            bits.backup_line_state()
+            self.state_manager.backup_ui_state_for_line(self.current_line_idx, 0)
+
+        # Backup trạng thái trước khi thực hiện bước
+        bits.backup_step_state()
+        self.state_manager.backup_ui_state_for_step(self.current_line_idx, self.current_step)
 
         # Kiểm tra nếu không còn lệnh để thực thi
         if bits.data['P2']['Inp0'] == 'Khong co lenh':
@@ -836,17 +925,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_step = 0
             self.current_line_idx = 0
             bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
             self.highlight_line(self.current_line_idx)
-            self.canvas.draw_idle()
-            return
-
-        # Nếu đã chạy hết các dòng code
-        if self.current_line_idx >= total_lines:
-            QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
-            self.current_line_idx = 0
-            self.highlight_line(self.current_line_idx)
-            bits.reset_data()
-            simulate.clear_animated_squares(self.ax)
+            if hasattr(self, 'animation_running') and self.animation_running:
+                self.animation_running = False
+                self.ui.animate_button.setText("Animate")
+                self.ui.animate_button.setChecked(False)
+                self.ui.animate_button.setStyleSheet("")
             self.canvas.draw_idle()
             return
 
@@ -870,7 +956,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Nếu đang có animation cũ thì dừng lại
         if self.ani:
-            self.ani.event_source.stop()
+            try:
+                self.ani.event_source.stop()
+            except Exception:
+                pass
 
         # Animate block/line hiện tại
         self.ani = simulate.run_by_step_with_animate(
@@ -882,15 +971,19 @@ class MainWindow(QtWidgets.QMainWindow):
         if block == 'M3' and int(bits.data['Reg']['RegWrite'], 2) == 1:
             rd = bits.data['Reg']['WriteRegister']
             rd_value = bits.data['Reg']['WriteData']
-            if int(rd, 2) != 31:  # XZR (X31) luôn bằng 0, không cần cập nhật
-                self.ui.registerShow.setItem(int(rd, 2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
+            try:
+                reg_idx = int(rd, 2)
+                reg_val = int(rd_value)
+                if reg_idx != 31:  # XZR (X31) luôn bằng 0, không cần cập nhật
+                    self.ui.registerShow.setItem(reg_idx, 0, QtWidgets.QTableWidgetItem(str(reg_val)))
+            except Exception:
+                pass
 
         # Vẽ lại canvas
         self.canvas.draw_idle()
 
         # Tăng bước cho lần chạy tiếp theo
         self.current_step += 1
-
 
     def handle_run_by_step_click(self):
         """Xử lý khi người dùng nhấn nút Run by Step"""
@@ -901,24 +994,62 @@ class MainWindow(QtWidgets.QMainWindow):
             # Chạy một bước bình thường
             self.run_by_step_with_simulate()
 
-
-
     def run_by_line(self):
         if not self.validate_code_lines():
             return
-        order = [
-            'PC', 'P1', 'IM', 'P2', 'Control',
-            'P3', 'M1', 'Reg', 'P5',  
-            'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
-            'M3', 'Flags', 'AND1', 'AND2', 'OR',
-            'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
-        ]
+        order = simulate.get_simulation_order()
         total_lines = self.ui.codeEditor.document().blockCount()
+
+        if self.current_line_idx < 0 or self.current_line_idx >= total_lines:
+            simulate.clear_animated_squares(self.ax)
+            if self.current_line_idx < 0:
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Địa chỉ lệnh không hợp lệ!\nDừng mô phỏng.")
+            else:
+                QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+            self.current_line_idx = 0
+            self.current_step = 0
+            self.highlight_line(self.current_line_idx)
+            bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
+            return
 
         bits.backup_line_state()
         self.state_manager.backup_ui_state_for_line(
             self.current_line_idx, self.current_step
         )
+
+        simulate.clear_animated_squares(self.ax)
+        self.canvas.draw_idle()
+
+        while self.current_step < len(order):
+            if bits.data['P2']['Inp0'] == 'Khong co lenh':
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Không có lệnh tại địa chỉ này!\nDừng mô phỏng.")
+                self.current_step = 0
+                self.current_line_idx = 0
+                bits.reset_data()
+                self.state_manager.clear_step_backup()
+                self.state_manager.clear_line_backup()
+                self.highlight_line(self.current_line_idx)
+                self.canvas.draw_idle()
+                return
+
+            block = order[self.current_step]
+            simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
+            if block == 'M3' and int(bits.data['Reg']['RegWrite'], 2) == 1:
+                rd = bits.data['Reg']['WriteRegister']
+                rd_value = bits.data['Reg']['WriteData']
+                try:
+                    reg_idx = int(rd, 2)
+                    reg_val = int(rd_value)
+                    if reg_idx != 31:
+                        self.ui.registerShow.setItem(reg_idx, 0, QtWidgets.QTableWidgetItem(str(reg_val)))
+                except Exception:
+                    pass
+            self.current_step += 1
+
+        self.current_step = 0
+        self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
 
         if self.current_line_idx >= total_lines:
             simulate.clear_animated_squares(self.ax)
@@ -926,34 +1057,31 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_line_idx = 0
             self.highlight_line(self.current_line_idx)
             bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
             return
-        
-        simulate.clear_animated_squares(self.ax)
-        self.canvas.draw_idle()
-
-        while self.current_step < len(order):
-            block = order[self.current_step]
-            simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
-            if block == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
-                rd= bits.data['Reg']['WriteRegister']
-                rd_value = bits.data['Reg']['WriteData']
-                if int(rd, 2) != 31:
-                    self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
-            self.current_step += 1
-        self.current_step = 0
-        self.current_line_idx = int(bits.data['PC']['Inp0'])//4
-        self.highlight_line(self.current_line_idx)
+        elif self.current_line_idx < 0:
+            QtWidgets.QMessageBox.warning(self, "Lỗi", "Địa chỉ lệnh không hợp lệ!\nDừng mô phỏng.")
+            self.current_line_idx = 0
+            self.highlight_line(self.current_line_idx)
+            bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
+            return
+        else:
+            self.highlight_line(self.current_line_idx)
 
         # Xóa highlight đường xanh nếu có
         if hasattr(self, 'highlighted_lines'):
             simulate.clear_highlighted_lines(self.highlighted_lines)
-            del self.highlighted_lines
-            # Highlight các line tiếp theo từ PC
-            self.highlighted_lines = simulate.highlight_next_lines(
-                self.ax, 'PC', simulate.line_next, simulate.lines
-            )
+        self.highlighted_lines = simulate.highlight_next_lines(
+            self.ax, 'PC', simulate.line_next, simulate.lines
+        )
         
-        self.state_manager.step_backup.clear()
+        self.state_manager.clear_step_backup()
+        bits.clear_step_history()
+        self.update_flags()
+        self.canvas.draw_idle()
 
         if self.ui.animate_button.isChecked():
             self.run_all_with_simulate()
@@ -961,14 +1089,94 @@ class MainWindow(QtWidgets.QMainWindow):
     def run_to_checkpoint(self):
         if not self.validate_code_lines():
             return
-        order = [
-            'PC', 'P1', 'IM', 'P2', 'Control',
-            'P3', 'M1', 'Reg', 'P5',  
-            'P4', 'ALUControl', 'SE', 'P6', 'M2', 'ALU', 'P7', 'Mem', 
-            'M3', 'Flags', 'AND1', 'AND2', 'OR',
-            'SL2', 'P8', 'ADD1', 'ADD2', 'M4'
-        ]
+        order = simulate.get_simulation_order()
         total_lines = self.ui.codeEditor.document().blockCount()
+
+        if self.current_line_idx < 0 or self.current_line_idx >= total_lines:
+            simulate.clear_animated_squares(self.ax)
+            if self.current_line_idx < 0:
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Địa chỉ lệnh không hợp lệ!\nDừng mô phỏng.")
+            else:
+                QtWidgets.QMessageBox.information(self, "Kết thúc", "Đã chạy hết chương trình!")
+            self.current_line_idx = 0
+            self.current_step = 0
+            self.highlight_line(self.current_line_idx)
+            bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
+            return
+
+        simulate.clear_animated_squares(self.ax)
+        self.canvas.draw_idle()
+        loop_count = 0
+        max_loops = 1000
+
+        while self.current_line_idx < total_lines and ((not self.ui.codeEditor.is_breakpoint(self.current_line_idx)) or self.check_in_checkpoint == 0):
+            if self.current_line_idx < 0:
+                QtWidgets.QMessageBox.warning(self, "Lỗi", "Địa chỉ lệnh không hợp lệ!\nDừng mô phỏng.")
+                self.current_line_idx = 0
+                self.current_step = 0
+                bits.reset_data()
+                self.state_manager.clear_step_backup()
+                self.state_manager.clear_line_backup()
+                self.highlight_line(self.current_line_idx)
+                return
+
+            if loop_count >= max_loops:
+                QtWidgets.QMessageBox.critical(self, "Lỗi", "Chương trình vượt quá 1000 vòng lặp! Có thể bị lặp vô hạn.")
+                self.check_in_checkpoint = 0
+                return
+
+            self.check_in_checkpoint += 1
+            loop_count += 1
+
+            bits.backup_line_state()
+            self.state_manager.backup_ui_state_for_line(
+                self.current_line_idx, self.current_step
+            )
+
+            while self.current_step < len(order):
+                if bits.data['P2']['Inp0'] == 'Khong co lenh':
+                    QtWidgets.QMessageBox.warning(self, "Lỗi", "Không có lệnh tại địa chỉ này!\nDừng mô phỏng.")
+                    self.current_step = 0
+                    self.current_line_idx = 0
+                    self.check_in_checkpoint = 0
+                    bits.reset_data()
+                    self.state_manager.clear_step_backup()
+                    self.state_manager.clear_line_backup()
+                    self.highlight_line(self.current_line_idx)
+                    self.canvas.draw_idle()
+                    return
+
+                block = order[self.current_step]
+                simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
+                if block == 'M3' and int(bits.data['Reg']['RegWrite'], 2) == 1:
+                    rd = bits.data['Reg']['WriteRegister']
+                    rd_value = bits.data['Reg']['WriteData']
+                    try:
+                        reg_idx = int(rd, 2)
+                        reg_val = int(rd_value)
+                        if reg_idx != 31:
+                            self.ui.registerShow.setItem(reg_idx, 0, QtWidgets.QTableWidgetItem(str(reg_val)))
+                    except Exception:
+                        pass
+                self.current_step += 1
+
+            self.current_step = 0
+            self.current_line_idx = int(bits.data['PC']['Inp0']) // 4
+            self.highlight_line(self.current_line_idx)
+
+        # Xóa highlight đường xanh nếu có
+        self.check_in_checkpoint = 0
+        if hasattr(self, 'highlighted_lines'):
+            simulate.clear_highlighted_lines(self.highlighted_lines)
+        self.highlighted_lines = simulate.highlight_next_lines(
+            self.ax, 'PC', simulate.line_next, simulate.lines
+        )
+        self.state_manager.clear_step_backup()
+        bits.clear_step_history()
+        self.update_flags()
+        self.canvas.draw_idle()
 
         if self.current_line_idx >= total_lines:
             simulate.clear_animated_squares(self.ax)
@@ -976,61 +1184,72 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_line_idx = 0
             self.highlight_line(self.current_line_idx)
             bits.reset_data()
+            self.state_manager.clear_step_backup()
+            self.state_manager.clear_line_backup()
             return
 
-        simulate.clear_animated_squares(self.ax)
-        self.canvas.draw_idle()
-        while self.current_line_idx < total_lines and ((not self.ui.codeEditor.is_breakpoint(self.current_line_idx)) or self.check_in_checkpoint==0):
-            
-            self.check_in_checkpoint += 1
-
-            while self.current_step < len(order):
-                block = order[self.current_step]
-                simulate.logic_step_from_block(block, simulate.lines, simulate.line_next, self.ui)
-                if block == 'M3' and int(bits.data['Reg']['RegWrite'],2) == 1:
-                    rd= bits.data['Reg']['WriteRegister']
-                    rd_value = bits.data['Reg']['WriteData']
-                    if int(rd, 2) != 31:
-                        self.ui.registerShow.setItem(int(rd,2), 0, QtWidgets.QTableWidgetItem(str(int(rd_value))))
-                self.current_step += 1
-            self.current_step = 0
-            self.current_line_idx = int(bits.data['PC']['Inp0'])//4
-            self.highlight_line(self.current_line_idx)
-
-            bits.backup_line_state()
-            self.state_manager.backup_ui_state_for_line(
-                self.current_line_idx, self.current_step
-            )
-
-        # Xóa highlight đường xanh nếu có
-        self.check_in_checkpoint = 0
-        if hasattr(self, 'highlighted_lines'):
-            simulate.clear_highlighted_lines(self.highlighted_lines)
-            del self.highlighted_lines
         if self.ui.animate_button.isChecked():
             self.run_all_with_simulate()
 
-        self.state_manager.step_backup.clear()
-
-
     def handle_clean(self):
-        
+        # Dừng animation nếu đang chạy
+        if hasattr(self, 'animation_running') and self.animation_running:
+            self.animation_running = False
+        if hasattr(self, 'ani') and self.ani:
+            try:
+                self.ani.event_source.stop()
+            except Exception:
+                pass
+            self.ani = None
+        self.ui.animate_button.setText("Animate")
+        self.ui.animate_button.setChecked(False)
+        self.ui.animate_button.setStyleSheet("")
+
         # Xóa backup history
-        self.state_manager.step_backup.clear()
-        self.state_manager.line_backup.clear()
+        self.state_manager.clear_step_backup()
+        self.state_manager.clear_line_backup()
+        bits.clear_step_history()
+        bits.clear_line_history()
 
         # Đưa giá trị thanh ghi về mặc định (0)
-        for i in range(self.ui.registerShow.rowCount() - 1):
-            self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem("0"))
-            item = self.ui.ramTable.item(i, 1)
-            item.setBackground(QColor(255, 255, 200))
+        self.ui.registerShow.blockSignals(True)
+        try:
+            for i in range(self.ui.registerShow.rowCount()):
+                item = self.ui.registerShow.item(i, 0)
+                if item:
+                    item.setText("0")
+                else:
+                    self.ui.registerShow.setItem(i, 0, QtWidgets.QTableWidgetItem("0"))
+        finally:
+            self.ui.registerShow.blockSignals(False)
 
-        for row in range(self.ui.ramTable.rowCount()):
-            word_item = QtWidgets.QTableWidgetItem("0")
-            if row % 8 == 0:
-                word_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
-                self.ui.ramTable.setItem(row, 3, word_item)
-                word_item.setBackground(QColor(255, 255, 200))  # Nền trắng cho ô chỉnh sửa
+        # Reset toàn bộ 512 dòng RAM
+        self.ui.ramTable.blockSignals(True)
+        try:
+            for row in range(self.ui.ramTable.rowCount()):
+                # ByteValue (cột 1)
+                byte_item = self.ui.ramTable.item(row, 1)
+                if byte_item:
+                    byte_item.setText("00000000")
+                else:
+                    b_item = QtWidgets.QTableWidgetItem("00000000")
+                    b_item.setBackground(QColor(255, 255, 200))
+                    self.ui.ramTable.setItem(row, 1, b_item)
+
+                # DoubleWordValue (cột 3)
+                if row % 8 == 0:
+                    word_item = self.ui.ramTable.item(row, 3)
+                    if word_item:
+                        word_item.setText("0")
+                        word_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                        word_item.setBackground(QColor(255, 255, 200))
+                    else:
+                        w_item = QtWidgets.QTableWidgetItem("0")
+                        w_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                        w_item.setBackground(QColor(255, 255, 200))
+                        self.ui.ramTable.setItem(row, 3, w_item)
+        finally:
+            self.ui.ramTable.blockSignals(False)
 
         # Đặt lại bits.data về mặc định
         bits.reset_data()
@@ -1038,12 +1257,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # Đặt lại current_line_idx, current_step về 0
         self.current_line_idx = 0
         self.current_step = 0
+        self.check_in_checkpoint = 0
 
         # Xóa highlight dòng code nếu có
         self.ui.codeEditor.setExtraSelections([])
 
         if hasattr(self, 'highlighted_lines'):
             simulate.clear_highlighted_lines(self.highlighted_lines)
+            del self.highlighted_lines
             
         # Đặt lại cờ NZCV về mặc định (nếu có)
         if hasattr(self.ui, "n_flag"):
