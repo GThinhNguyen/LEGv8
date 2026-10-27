@@ -1,1 +1,18 @@
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Build and distribution
+build/
+dist/
+*.spec.bak
+
+# IDE & Editor
+.vscode/
+.idea/
